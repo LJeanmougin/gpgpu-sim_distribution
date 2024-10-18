@@ -991,6 +991,7 @@ void shader_core_ctx::fetch() {
               m_gpu->gpu_tot_sim_cycle + m_gpu->gpu_sim_cycle);
           std::list<cache_event> events;
           enum cache_request_status status;
+          // L.Jeanmougin : check if perfect memory is effectively working
           if (m_config->perfect_inst_const_cache) {
             status = HIT;
             shader_cache_access_log(m_sid, INSTRUCTION, 0);
@@ -998,7 +999,7 @@ void shader_core_ctx::fetch() {
             status = m_L1I->access(
                 (new_addr_type)ppc, mf,
                 m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle, events);
-
+          // L.Jeanmougin : check miss status part with reservation fail
           if (status == MISS) {
             m_last_warp_fetched = warp_id;
             m_warp[warp_id]->set_imiss_pending();
@@ -1026,6 +1027,7 @@ void exec_shader_core_ctx::func_exec_inst(warp_inst_t &inst) {
   execute_warp_inst_t(inst);
   if (inst.is_load() || inst.is_store()) {
     inst.generate_mem_accesses();
+    // L.Jeanmougin : generate_mem_accesses function should be explored
     // inst.print_m_accessq();
   }
 }
@@ -1118,6 +1120,7 @@ void shader_core_ctx::issue_warp(register_set &pipe_reg_set,
 
   updateSIMTStack(warp_id, *pipe_reg);
 
+  // L.Jeanmougin : regs reserv to check (maybe inflate the number of regs)
   m_scoreboard->reserveRegisters(*pipe_reg);
   m_warp[warp_id]->set_next_pc(next_inst->pc + next_inst->isize);
 }
@@ -1127,6 +1130,7 @@ void shader_core_ctx::issue() {
   unsigned j;
   for (unsigned i = 0; i < schedulers.size(); i++) {
     j = (Issue_Prio + i) % schedulers.size();
+    // L.Jeanmougin : is there a cost to scheduling ?
     schedulers[j]->cycle();
   }
   Issue_Prio = (Issue_Prio + 1) % schedulers.size();
@@ -1299,7 +1303,8 @@ void scheduler_unit::cycle() {
            (checked < max_issue) && (checked <= issued) &&
            (issued < max_issue)) {
       const warp_inst_t *pI = warp(warp_id).ibuffer_next_inst();
-      // Jin: handle cdp latency;
+      // Jin: handle cdp latency; 
+      // L.Jeanmougin : WHAT IS CDP LATENCY ???? Might need to be disabled
       if (pI && pI->m_is_cdp && warp(warp_id).m_cdp_latency > 0) {
         assert(warp(warp_id).m_cdp_dummy);
         warp(warp_id).m_cdp_latency--;
@@ -1327,6 +1332,7 @@ void scheduler_unit::cycle() {
           warp(warp_id).ibuffer_flush();
         } else {
           valid_inst = true;
+          // L.Jeanmougin : collision checking may introduce latency
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
@@ -1390,7 +1396,8 @@ void scheduler_unit::cycle() {
                   // Jin: special for CDP api
                   if (pI->m_is_cdp && !warp(warp_id).m_cdp_dummy) {
                     assert(warp(warp_id).m_cdp_latency == 0);
-
+                    // L.Jeanmougin : CDP stands for Cuda Device Parameter ??
+                    //                Look into cdp_latency management
                     if (pI->m_is_cdp == 1)
                       warp(warp_id).m_cdp_latency =
                           m_shader->m_config->gpgpu_ctx->func_sim
@@ -1553,6 +1560,10 @@ void scheduler_unit::cycle() {
   }
 
   // issue stall statistics:
+  // L.Jeanmougin : shader_cycle_distro is about latencies
+  // idx 0 : idle or control hazard
+  // idx 1 : waiting for RAW hazards 
+  // idx 2 : pipeline stall
   if (!valid_inst)
     m_stats->shader_cycle_distro[0]++;  // idle or control hazard
   else if (!ready_inst)
@@ -1707,12 +1718,14 @@ void swl_scheduler::order_warps() {
 }
 
 void shader_core_ctx::read_operands() {
+  // L.Jeanmougin : does m_operand_collector.step() introduce latency ?
   for (unsigned int i = 0; i < m_config->reg_file_port_throughput; ++i)
     m_operand_collector.step();
 }
 
 address_type coalesced_segment(address_type addr,
                                unsigned segment_size_lg2bytes) {
+  // L.Jeanmougin : coalesced_segment might tell if access is coalesced ?
   return (addr >> segment_size_lg2bytes);
 }
 
@@ -1724,7 +1737,8 @@ unsigned shader_core_ctx::translate_local_memaddr(
   // During functional execution, each thread sees its own memory space for
   // local memory, but these need to be mapped to a shared address space for
   // timing simulation.  We do that mapping here.
-
+  // L.Jeanmougin : THIS MIGHT BE IT
+  // this translates the local memory address to shared address for TIMING SIMULATION
   address_type thread_base = 0;
   unsigned max_concurrent_threads = 0;
   if (m_config->gpgpu_local_mem_map) {
@@ -1791,6 +1805,7 @@ unsigned shader_core_ctx::translate_local_memaddr(
 
 /////////////////////////////////////////////////////////////////////////////////////////
 int shader_core_ctx::test_res_bus(int latency) {
+  // L.Jeanmougin : what is test_res_bus ?
   for (unsigned i = 0; i < num_result_bus; i++) {
     if (!m_result_bus[i]->test(latency)) {
       return i;
