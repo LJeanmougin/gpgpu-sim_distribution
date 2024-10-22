@@ -2073,9 +2073,9 @@ mem_stage_stall_type ldst_unit::process_memory_access_queue(cache_t *cache,
 
 mem_stage_stall_type ldst_unit::process_memory_access_queue_l1cache(
     l1_cache *cache, warp_inst_t &inst) {
+  // L.Jeanmougin : Shared memory handling seems to be decoupled from L1$
   mem_stage_stall_type result = NO_RC_FAIL;
   if (inst.accessq_empty()) return result;
-
   if (m_config->m_L1D_config.l1_latency > 0) {
     for (unsigned int j = 0; j < m_config->m_L1D_config.l1_banks;
          j++) {  // We can handle at max l1_banks reqs per cycle
@@ -2907,13 +2907,15 @@ void ldst_unit::cycle() {
   enum mem_stage_stall_type rc_fail = NO_RC_FAIL;
   mem_stage_access_type type;
   bool done = true;
-  done &= shared_cycle(pipe_reg, rc_fail, type);
+  done &= shared_cycle(pipe_reg, rc_fail, type); // L.Jeanmougin : Maybe look into "shared_cycle" for shared latency ?
   done &= constant_cycle(pipe_reg, rc_fail, type);
   done &= texture_cycle(pipe_reg, rc_fail, type);
   done &= memory_cycle(pipe_reg, rc_fail, type);
   m_mem_rc = rc_fail;
 
   if (!done) {  // log stall types and return
+    // L.Jeanmougin (ACTUAL FINDING) : This is where shared memory stalls are categorized
+    // There is a possibility that "shared_cycle" adds the shared memory stall cycles
     assert(rc_fail != NO_RC_FAIL);
     m_stats->gpgpu_n_stall_shd_mem++;
     m_stats->gpu_stall_shd_mem_breakdown[type][rc_fail]++;
@@ -2926,6 +2928,7 @@ void ldst_unit::cycle() {
       if (pipe_reg.space.get_type() == shared_space) {
         if (m_pipeline_reg[m_config->smem_latency - 1]->empty()) {
           // new shared memory request
+          // L.Jeanmougin : Pipeline reg of size smem latency maybe keeps track of requests in flight
           move_warp(m_pipeline_reg[m_config->smem_latency - 1], m_dispatch_reg);
           m_dispatch_reg->clear();
         }
