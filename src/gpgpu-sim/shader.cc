@@ -1991,12 +1991,14 @@ bool ldst_unit::shared_cycle(warp_inst_t &inst, mem_stage_stall_type &rc_fail,
   if (inst.space.get_type() != shared_space) return true;
 
   if (inst.active_count() == 0) return true;
-
+  // L.Jeanmougin : dispatch delay might be constant
   if (inst.has_dispatch_delay()) {
     m_stats->gpgpu_n_shmem_bank_access[m_sid]++;
   }
 
   bool stall = inst.dispatch_delay();
+  // L.Jeanmougin : Trying to effectively supress shmem stalls
+  while(stall) stall = inst.dispatch_delay();
   if (stall) {
     fail_type = S_MEM;
     rc_fail = BK_CONF;
