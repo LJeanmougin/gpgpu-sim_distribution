@@ -991,7 +991,6 @@ void shader_core_ctx::fetch() {
               m_gpu->gpu_tot_sim_cycle + m_gpu->gpu_sim_cycle);
           std::list<cache_event> events;
           enum cache_request_status status;
-          // L.Jeanmougin : check if perfect memory is effectively working
           if (m_config->perfect_inst_const_cache) {
             status = HIT;
             shader_cache_access_log(m_sid, INSTRUCTION, 0);
@@ -999,7 +998,6 @@ void shader_core_ctx::fetch() {
             status = m_L1I->access(
                 (new_addr_type)ppc, mf,
                 m_gpu->gpu_sim_cycle + m_gpu->gpu_tot_sim_cycle, events);
-          // L.Jeanmougin : check miss status part with reservation fail
           if (status == MISS) {
             m_last_warp_fetched = warp_id;
             m_warp[warp_id]->set_imiss_pending();
@@ -1569,8 +1567,9 @@ void scheduler_unit::cycle() {
   else if (!ready_inst)
     m_stats->shader_cycle_distro[1]++;  // waiting for RAW hazards (possibly due
                                         // to memory)
-  else if (!issued_inst)
+  else if (!issued_inst) {
     m_stats->shader_cycle_distro[2]++;  // pipeline stalled
+  }
 }
 
 void scheduler_unit::do_on_warp_issued(
@@ -1935,7 +1934,10 @@ void shader_core_ctx::warp_inst_complete(const warp_inst_t &inst) {
     m_stats->m_num_sim_insn[m_sid] += inst.active_count();
 
   m_stats->m_num_sim_winsn[m_sid]++;
-  m_gpu->gpu_sim_insn += inst.active_count();
+  // L.Jeanmougin : To us it is more interesting to consider that one warp executing
+  // an instruction at a given cycle only counts as 1.
+  // m_gpu->gpu_sim_insn += inst.active_count();
+  m_gpu->gpu_sim_insn++;
   inst.completed(m_gpu->gpu_tot_sim_cycle + m_gpu->gpu_sim_cycle);
 }
 
