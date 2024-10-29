@@ -1330,8 +1330,9 @@ void scheduler_unit::cycle() {
           warp(warp_id).ibuffer_flush();
         } else {
           valid_inst = true;
-          // L.Jeanmougin : collision checking may introduce latency
-          if (!m_scoreboard->checkCollision(warp_id, pI)) {
+          // L.Jeanmougin : Scoreboard check is ignored
+          // if (!m_scoreboard->checkCollision(warp_id, pI)) {
+          if (true) {
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
                 (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
@@ -1394,8 +1395,6 @@ void scheduler_unit::cycle() {
                   // Jin: special for CDP api
                   if (pI->m_is_cdp && !warp(warp_id).m_cdp_dummy) {
                     assert(warp(warp_id).m_cdp_latency == 0);
-                    // L.Jeanmougin : CDP stands for Cuda Device Parameter ??
-                    //                Look into cdp_latency management
                     if (pI->m_is_cdp == 1)
                       warp(warp_id).m_cdp_latency =
                           m_shader->m_config->gpgpu_ctx->func_sim
@@ -1726,6 +1725,7 @@ address_type coalesced_segment(address_type addr,
                                unsigned segment_size_lg2bytes) {
   // L.Jeanmougin : coalesced_segment might tell if access is coalesced ?
   return (addr >> segment_size_lg2bytes);
+
 }
 
 // Returns numbers of addresses in translated_addrs, each addr points to a 4B
@@ -4238,10 +4238,11 @@ bool opndcoll_rfu_t::writeback(warp_inst_t &inst) {
       if (m_arbiter.bank_idle(bank)) {
         m_arbiter.allocate_bank_for_write(
             bank, op_t(&inst, reg_num, m_num_banks, sub_core_model,
-                       m_num_banks_per_sched, inst.get_schd_id()));
+                       m_num_banks_per_sched, inst.get_schd_id())); // L.Jeanmougin
         inst.arch_reg.dst[op] = -1;
       } else {
-        return false;
+        // return true;
+        return false; // L.Jeanmougin doesn't change anything since return value is ignored
       }
     }
   }
