@@ -125,6 +125,8 @@ void Scoreboard::releaseRegisters(const class warp_inst_t* inst) {
  * @return
  * true if WAW or RAW hazard (no WAR since in-order issue)
  **/
+// L.Jeanmougin : The scoreboard interference can't be fixed here
+// the writeback stage must be found
 bool Scoreboard::checkCollision(unsigned wid, const class inst_t* inst) const {
   // Get list of all input and output registers
   std::set<int> inst_regs;

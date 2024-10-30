@@ -554,7 +554,9 @@ void warp_inst_t::memory_coalescing_arch(bool is_write,
         info.active.set(thread);
         unsigned idx = (addr & 127);
         for (unsigned i = 0; i < data_size_coales; i++)
-          if ((idx + i) < MAX_MEMORY_ACCESS_SIZE) info.bytes.set(idx + i);
+          if ((idx + i) < MAX_MEMORY_ACCESS_SIZE){
+            info.bytes.set(idx + i);
+          } 
 
         // it seems like in trace driven, a thread can write to more than one
         // segment handle this special case

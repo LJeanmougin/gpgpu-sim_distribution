@@ -677,6 +677,11 @@ void shader_core_stats::print(FILE *fout) const {
           gpu_stall_shd_mem_breakdown[L_MEM_ST]
                                      [COAL_STALL]);  // coalescing stall + bank
                                                      // conflict at data cache
+  // L.Jeanmougin : What is the coal stall source ?
+  printf("gmemld %d\n",gpu_stall_shd_mem_breakdown[G_MEM_LD][COAL_STALL]);
+  printf("gmemst %d\n",gpu_stall_shd_mem_breakdown[G_MEM_ST][COAL_STALL]);
+  printf("lmemld %d\n",gpu_stall_shd_mem_breakdown[L_MEM_LD][COAL_STALL]);
+  printf("lmemst %d\n",gpu_stall_shd_mem_breakdown[L_MEM_ST][COAL_STALL]);
   fprintf(fout, "gpgpu_stall_shd_mem[gl_mem][data_port_stall] = %d\n",
           gpu_stall_shd_mem_breakdown[G_MEM_LD][DATA_PORT_STALL] +
               gpu_stall_shd_mem_breakdown[G_MEM_ST][DATA_PORT_STALL] +
@@ -883,6 +888,7 @@ const active_mask_t &exec_shader_core_ctx::get_active_mask(
   return m_simt_stack[warp_id]->get_active_mask();
 }
 
+// L.Jeanmougin : decode DOESN'T affect timing
 void shader_core_ctx::decode() {
   if (m_inst_fetch_buffer.m_valid) {
     // decode 1 or 2 instructions and place them into ibuffer
@@ -921,6 +927,7 @@ void shader_core_ctx::decode() {
 void shader_core_ctx::fetch() {
   if (!m_inst_fetch_buffer.m_valid) {
     if (m_L1I->access_ready()) {
+      // L.Jeanmougin : L1 deactivated = never goes here
       mem_fetch *mf = m_L1I->next_access();
       m_warp[mf->get_wid()]->clear_imiss_pending();
       m_inst_fetch_buffer =
@@ -970,6 +977,8 @@ void shader_core_ctx::fetch() {
         }
 
         // this code fetches instructions from the i-cache or generates memory
+        // L.Jeanmougin : Actual fetch of instructions
+        // It is slowed down by the issue latency, likely due to registers dependencies
         if (!m_warp[warp_id]->functional_done() &&
             !m_warp[warp_id]->imiss_pending() &&
             m_warp[warp_id]->ibuffer_empty()) {
@@ -1128,7 +1137,7 @@ void shader_core_ctx::issue() {
   unsigned j;
   for (unsigned i = 0; i < schedulers.size(); i++) {
     j = (Issue_Prio + i) % schedulers.size();
-    // L.Jeanmougin : is there a cost to scheduling ?
+    // L.Jeanmougin : No cost to scheduling
     schedulers[j]->cycle();
   }
   Issue_Prio = (Issue_Prio + 1) % schedulers.size();
@@ -1330,8 +1339,14 @@ void scheduler_unit::cycle() {
           warp(warp_id).ibuffer_flush();
         } else {
           valid_inst = true;
-          // L.Jeanmougin : collision checking may introduce latency
+          // L.Jeanmougin : This is where scoreboard collision is processed
+          // Must be negated to match model
+          if (m_scoreboard->checkCollision(warp_id, pI))
+          {
+            printf("Scoreboard collision on cycle instruction : %llu\n", pI->pc);
+          }
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
+            printf("No scoreboard collision on cycle instruction : %llu\n", pI->pc);
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
                 (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
@@ -4225,7 +4240,6 @@ unsigned register_bank(int regnum, int wid, unsigned num_banks,
 
 bool opndcoll_rfu_t::writeback(warp_inst_t &inst) {
   assert(!inst.empty());
-
   std::list<unsigned> regs = m_shader->get_regs_written(inst);
   for (unsigned op = 0; op < MAX_REG_OPERANDS; op++) {
     int reg_num = inst.arch_reg.dst[op];  // this math needs to match that used
@@ -4237,10 +4251,9 @@ bool opndcoll_rfu_t::writeback(warp_inst_t &inst) {
       if (m_arbiter.bank_idle(bank)) {
         m_arbiter.allocate_bank_for_write(
             bank, op_t(&inst, reg_num, m_num_banks, sub_core_model,
-                       m_num_banks_per_sched, inst.get_schd_id())); // L.Jeanmougin
+                       m_num_banks_per_sched, inst.get_schd_id()));
         inst.arch_reg.dst[op] = -1;
       } else {
-        // return true;
         return false; // L.Jeanmougin doesn't change anything since return value is ignored
       }
     }
@@ -4260,6 +4273,7 @@ bool opndcoll_rfu_t::writeback(warp_inst_t &inst) {
       }
       m_shader->incregfile_writes(active_count);
     } else {
+      // L.Jeanmougin : writeback goes there (reg file isn't gated)
       m_shader->incregfile_writes(
           m_shader->get_config()->warp_size);  // inst.active_count());
     }
