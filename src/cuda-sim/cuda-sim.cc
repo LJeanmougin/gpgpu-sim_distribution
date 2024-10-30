@@ -965,12 +965,12 @@ void ptx_instruction::set_opcode_and_latency() {
                     // instructions for bitmasking) on devices with compute
                     // capability >1.x
       latency = int_latency[2] + 1;
-      initiation_interval = int_init[2] + 1;
+      initiation_interval = int_init[2] + 1; // L.Jeanmougin : adapted latency
       op = INTP_OP;
       break;
     case MAD24_OP:
       latency = int_latency[3] + 1;
-      initiation_interval = int_init[3] + 1;
+      initiation_interval = int_init[3] + 1; // L.Jeanmougin : adapted latency
       op = INTP_OP;
       break;
     case DIV_OP:

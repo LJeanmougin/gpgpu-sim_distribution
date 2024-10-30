@@ -1330,9 +1330,8 @@ void scheduler_unit::cycle() {
           warp(warp_id).ibuffer_flush();
         } else {
           valid_inst = true;
-          // L.Jeanmougin : Scoreboard check is ignored
-          // if (!m_scoreboard->checkCollision(warp_id, pI)) {
-          if (true) {
+          // L.Jeanmougin : collision checking may introduce latency
+          if (!m_scoreboard->checkCollision(warp_id, pI)) {
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
                 (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
