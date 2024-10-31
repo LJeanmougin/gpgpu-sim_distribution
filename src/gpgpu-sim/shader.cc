@@ -1955,7 +1955,6 @@ void shader_core_ctx::warp_inst_complete(const warp_inst_t &inst) {
   inst.completed(m_gpu->gpu_tot_sim_cycle + m_gpu->gpu_sim_cycle);
 }
 
-// L.Jeanmougin : CHECK THIS FIRST
 void shader_core_ctx::writeback() {
   unsigned max_committed_thread_instructions =
       m_config->warp_size *
@@ -4276,10 +4275,10 @@ bool opndcoll_rfu_t::writeback(warp_inst_t &inst) {
       m_shader->incregfile_writes(active_count);
     } else {
       // L.Jeanmougin : writeback goes there (reg file isn't gated)
-      m_shader->incregfile_writes(
-          m_shader->get_config()->warp_size);  // inst.active_count());
     }
   }
+      m_shader->incregfile_writes(
+          m_shader->get_config()->warp_size);  // inst.active_count());
   return true;
 }
 
