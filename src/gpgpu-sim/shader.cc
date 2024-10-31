@@ -1343,10 +1343,10 @@ void scheduler_unit::cycle() {
           // Must be negated to match model
           if (m_scoreboard->checkCollision(warp_id, pI))
           {
-            printf("Scoreboard collision on cycle instruction : %llu\n", pI->pc);
+            printf("Scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
           }
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
-            printf("No scoreboard collision on cycle instruction : %llu\n", pI->pc);
+            printf("No scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
                 (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
@@ -1970,6 +1970,7 @@ void shader_core_ctx::writeback() {
 
   warp_inst_t **preg = m_pipeline_reg[EX_WB].get_ready();
   warp_inst_t *pipe_reg = (preg == NULL) ? NULL : *preg;
+  // L.Jeanmougin : This part has nothing to do with scoreboard latency
   while (preg and !pipe_reg->empty()) {
     /*
      * Right now, the writeback stage drains all waiting instructions
