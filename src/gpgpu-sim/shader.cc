@@ -1575,8 +1575,12 @@ void scheduler_unit::cycle() {
   // idx 0 : idle or control hazard
   // idx 1 : waiting for RAW hazards 
   // idx 2 : pipeline stall
-  if (!valid_inst)
+  if (!valid_inst){
+  // L.Jeanmougin : at this point,
+  // idle cycles are the consequence of the execution of the last
+  // issued instruction (opnd coll + exectuion + commit)
     m_stats->shader_cycle_distro[0]++;  // idle or control hazard
+  } 
   else if (!ready_inst)
     m_stats->shader_cycle_distro[1]++;  // waiting for RAW hazards (possibly due
                                         // to memory)
