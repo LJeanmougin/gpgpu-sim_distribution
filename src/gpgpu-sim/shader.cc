@@ -1329,6 +1329,8 @@ void scheduler_unit::cycle() {
               .c_str());
       if (pI) {
         assert(valid);
+        // L.Jeanmougin : This print is a good way to track instruction stalling
+        std::cout << "Trying to issue " << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
         if (pc != pI->pc) {
           SCHED_DPRINTF(
               "Warp (warp_id %u, dynamic_warp_id %u) control hazard "
@@ -1341,12 +1343,12 @@ void scheduler_unit::cycle() {
           valid_inst = true;
           // L.Jeanmougin : This is where scoreboard collision is processed
           // Must be negated to match model
-          if (m_scoreboard->checkCollision(warp_id, pI))
-          {
-            printf("Scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
-          }
+          // if (m_scoreboard->checkCollision(warp_id, pI))
+          // {
+          //   // printf("Scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
+          // }
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
-            printf("No scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
+            // printf("No scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
                 (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
@@ -1991,7 +1993,6 @@ void shader_core_ctx::writeback() {
      * To handle this case, we ignore the return value (thus allowing
      * no stalling).
      */
-
     m_operand_collector.writeback(*pipe_reg);
     unsigned warp_id = pipe_reg->warp_id();
     m_scoreboard->releaseRegisters(pipe_reg);
