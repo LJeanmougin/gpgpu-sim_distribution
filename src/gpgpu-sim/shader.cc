@@ -1330,7 +1330,6 @@ void scheduler_unit::cycle() {
       if (pI) {
         assert(valid);
         // L.Jeanmougin : This print is a good way to track instruction stalling
-        std::cout << "Trying to issue " << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
         if (pc != pI->pc) {
           SCHED_DPRINTF(
               "Warp (warp_id %u, dynamic_warp_id %u) control hazard "
@@ -1348,6 +1347,7 @@ void scheduler_unit::cycle() {
           //   // printf("Scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
           // }
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
+            std::cout << "Cycle " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : " << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
             // printf("No scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
@@ -1941,6 +1941,7 @@ void shader_core_ctx::warp_inst_complete(const warp_inst_t &inst) {
       printf("[warp_inst_complete] uid=%u core=%u warp=%u pc=%#x @ time=%llu \n",
              inst.get_uid(), m_sid, inst.warp_id(), inst.pc,  m_gpu->gpu_tot_sim_cycle +  m_gpu->gpu_sim_cycle);
 #endif
+  std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Completed instruction : " << m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(inst.pc).c_str() << std::endl;
   if (inst.op_pipe == SP__OP)
     m_stats->m_num_sp_committed[m_sid]++;
   else if (inst.op_pipe == SFU__OP)
@@ -2580,6 +2581,7 @@ void pipelined_simd_unit::cycle() {
       move_warp(m_pipeline_reg[stage], m_pipeline_reg[stage + 1]);
   }
   if (!m_dispatch_reg->empty()) {
+    // while(m_dispatch_reg->dispatch_delay()){}; // L.Jeanmougin : Removes initiation cycles
     if (!m_dispatch_reg->dispatch_delay()) {
       int start_stage =
           m_dispatch_reg->latency - m_dispatch_reg->initiation_interval;
@@ -2720,6 +2722,10 @@ void ldst_unit::issue(register_set &reg_set) {
 void ldst_unit::writeback() {
   // process next instruction that is going to writeback
   if (!m_next_wb.empty()) {
+    // L.Jeanmougin : With this print, we know that ld.global initiation is of 6 cycles
+    // and the writeback is of 4 cycles. It is likely that a ldst holds the unit
+    // until completion and thus interferes with other competing ldst instructions
+    std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Writing back" << std::endl;
     if (m_operand_collector->writeback(m_next_wb)) {
       bool insn_completed = false;
       for (unsigned r = 0; r < MAX_OUTPUT_VALUES; r++) {
