@@ -2723,7 +2723,8 @@ void ldst_unit::writeback() {
   // process next instruction that is going to writeback
   if (!m_next_wb.empty()) {
     // L.Jeanmougin : With this print, we know that ld.global initiation is of 6 cycles
-    // and the writeback is of 4 cycles. It is likely that a ldst holds the unit
+    // and the writeback depends on thread mask. Having at least one active thread in a
+    // 8 threads section generates 1 access. It is likely that a ldst holds the unit
     // until completion and thus interferes with other competing ldst instructions
     std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Writing back" << std::endl;
     if (m_operand_collector->writeback(m_next_wb)) {
