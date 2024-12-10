@@ -357,7 +357,6 @@ void dram_t::cycle() {
   }
   banks_1time += memory_pending;
   if (memory_pending > 0) banks_acess_total++;
-
   unsigned int memory_pending_rw = 0;
   unsigned read_blp_rw = 0;
   unsigned write_blp_rw = 0;

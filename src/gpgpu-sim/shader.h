@@ -2566,6 +2566,8 @@ class shader_core_ctx : public core_t {
   bool occupy_shader_resource_1block(kernel_info_t &kernel, bool occupy);
   void release_shader_resource_1block(unsigned hw_ctaid, kernel_info_t &kernel);
   int find_available_hwtid(unsigned int cta_size, bool occupy);
+  // L.Jeanmougin : Trace file declaration
+  std::ofstream trace_file;
 
  private:
   unsigned int m_occupied_n_threads;
@@ -2574,6 +2576,7 @@ class shader_core_ctx : public core_t {
   unsigned int m_occupied_ctas;
   std::bitset<MAX_THREAD_PER_SM> m_occupied_hwtid;
   std::map<unsigned int, unsigned int> m_occupied_cta_to_hwtid;
+
 };
 
 class exec_shader_core_ctx : public shader_core_ctx {

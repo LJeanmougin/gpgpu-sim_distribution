@@ -30,6 +30,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+
 #include "shader.h"
 #include <float.h>
 #include <limits.h>
@@ -574,6 +575,9 @@ void shader_core_ctx::init_warps(unsigned cta_id, unsigned start_thread,
       ++m_active_warps;
     }
   }
+  std::cout << "Current position is : " << get_current_dir_name() << std::endl;
+  std::cout << "/home/runner/accel-sim/" + kernel.get_name() << std::endl;
+  trace_file = std::ofstream(get_current_dir_name() + std::string("/") + kernel.get_name() + std::to_string(kernel_id) + std::string(".trace"));
 }
 
 // return the next pc of a thread
@@ -1347,8 +1351,11 @@ void scheduler_unit::cycle() {
           //   // printf("Scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
           // }
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
-            std::cout << "Cycle " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : " << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
+            // std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
+            // std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
+            // std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
             // printf("No scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
+            m_shader->trace_file << "warp " << (*iter)->get_warp_id() << " : " << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
                 (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
@@ -1358,7 +1365,6 @@ void scheduler_unit::cycle() {
                 m_shader->get_active_mask(warp_id, pI);
 
             assert(warp(warp_id).inst_in_pipeline());
-
             if ((pI->op == LOAD_OP) || (pI->op == STORE_OP) ||
                 (pI->op == MEMORY_BARRIER_OP) ||
                 (pI->op == TENSOR_CORE_LOAD_OP) ||
@@ -1941,7 +1947,7 @@ void shader_core_ctx::warp_inst_complete(const warp_inst_t &inst) {
       printf("[warp_inst_complete] uid=%u core=%u warp=%u pc=%#x @ time=%llu \n",
              inst.get_uid(), m_sid, inst.warp_id(), inst.pc,  m_gpu->gpu_tot_sim_cycle +  m_gpu->gpu_sim_cycle);
 #endif
-  std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Completed instruction : " << m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(inst.pc).c_str() << std::endl;
+  // std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Completed instruction : " << m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(inst.pc).c_str() << std::endl;
   if (inst.op_pipe == SP__OP)
     m_stats->m_num_sp_committed[m_sid]++;
   else if (inst.op_pipe == SFU__OP)
@@ -2726,7 +2732,7 @@ void ldst_unit::writeback() {
     // and the writeback depends on thread mask. Having at least one active thread in a
     // 8 threads section generates 1 access. It is likely that a ldst holds the unit
     // until completion and thus interferes with other competing ldst instructions
-    std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Writing back" << std::endl;
+    // std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Writing back" << std::endl;
     if (m_operand_collector->writeback(m_next_wb)) {
       bool insn_completed = false;
       for (unsigned r = 0; r < MAX_OUTPUT_VALUES; r++) {
@@ -2893,6 +2899,8 @@ void ldst_unit::cycle() {
     } else {
       if (mf->get_type() == WRITE_ACK ||
           (m_config->gpgpu_perfect_mem && mf->get_is_write())) {
+        // L.Jeanmougin : Looking for store behavior
+        // std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Storing value" << std::endl; 
         m_core->store_ack(mf);
         m_response_fifo.pop_front();
         delete mf;
@@ -2945,8 +2953,6 @@ void ldst_unit::cycle() {
   m_mem_rc = rc_fail;
 
   if (!done) {  // log stall types and return
-    // L.Jeanmougin (ACTUAL FINDING) : This is where shared memory stalls are categorized
-    // There is a possibility that "shared_cycle" adds the shared memory stall cycles
     assert(rc_fail != NO_RC_FAIL);
     m_stats->gpgpu_n_stall_shd_mem++;
     m_stats->gpu_stall_shd_mem_breakdown[type][rc_fail]++;

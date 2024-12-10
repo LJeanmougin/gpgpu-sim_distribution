@@ -321,6 +321,7 @@ void function_info::ptx_assemble() {
     }
   }
   gpgpu_ctx->func_sim->g_assemble_code_next_pc = PC;
+  // L.Jeanmougin : are branch instructions processed here ?
   for (unsigned ii = 0; ii < n;
        ii += m_instr_mem[ii]->inst_size()) {  // handle branch instructions
     ptx_instruction *pI = m_instr_mem[ii];
@@ -817,6 +818,7 @@ void ptx_instruction::set_opcode_and_latency() {
     case MMA_ST_OP:
       op = TENSOR_CORE_STORE_OP;
       break;
+    // L.Jeanmougin : What is branch op init and latency ?
     case BRA_OP:
       op = BRANCH_OP;
       break;
@@ -1810,7 +1812,7 @@ void ptx_thread_info::ptx_exec_inst(warp_inst_t &inst, unsigned lane_id) {
       }
     }
     int inst_opcode = pI->get_opcode();
-
+    // L.Jeanmougin : Never execute conditionnal instruction (cond branch included)
     if (skip) {
       inst.set_not_active(lane_id);
     } else {
