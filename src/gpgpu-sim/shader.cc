@@ -578,6 +578,7 @@ void shader_core_ctx::init_warps(unsigned cta_id, unsigned start_thread,
   std::cout << "Current position is : " << get_current_dir_name() << std::endl;
   std::cout << "/home/runner/accel-sim/" + kernel.get_name() << std::endl;
   trace_file = std::ofstream(get_current_dir_name() + std::string("/") + kernel.get_name() + std::to_string(kernel_id) + std::string(".trace"));
+  trace_file << "File start..." << std::endl;
 }
 
 // return the next pc of a thread
