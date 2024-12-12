@@ -578,7 +578,6 @@ void shader_core_ctx::init_warps(unsigned cta_id, unsigned start_thread,
   std::cout << "Current position is : " << get_current_dir_name() << std::endl;
   std::cout << "/home/runner/accel-sim/" + kernel.get_name() << std::endl;
   trace_file = std::ofstream(get_current_dir_name() + std::string("/") + kernel.get_name() + std::to_string(kernel_id) + std::string(".trace"));
-  trace_file << "File start..." << std::endl;
 }
 
 // return the next pc of a thread
@@ -1334,7 +1333,6 @@ void scheduler_unit::cycle() {
               .c_str());
       if (pI) {
         assert(valid);
-        // L.Jeanmougin : This print is a good way to track instruction stalling
         if (pc != pI->pc) {
           SCHED_DPRINTF(
               "Warp (warp_id %u, dynamic_warp_id %u) control hazard "
@@ -1345,12 +1343,6 @@ void scheduler_unit::cycle() {
           warp(warp_id).ibuffer_flush();
         } else {
           valid_inst = true;
-          // L.Jeanmougin : This is where scoreboard collision is processed
-          // Must be negated to match model
-          // if (m_scoreboard->checkCollision(warp_id, pI))
-          // {
-          //   // printf("Scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
-          // }
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
             // std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
             // std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
