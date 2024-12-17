@@ -1344,9 +1344,6 @@ void scheduler_unit::cycle() {
         } else {
           valid_inst = true;
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
-            // std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
-            // std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
-            // std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
             // printf("No scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
             m_shader->trace_file << "warp " << (*iter)->get_warp_id() << " : " << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
             SCHED_DPRINTF(
@@ -1527,6 +1524,13 @@ void scheduler_unit::cycle() {
                 "Warp (warp_id %u, dynamic_warp_id %u) fails scoreboard\n",
                 (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
           }
+          if (issued_inst)
+          {
+            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
+            std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
+            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
+          }
+            
         }
       } else if (valid) {
         // this case can happen after a return instruction in diverged warp
@@ -1735,14 +1739,12 @@ void swl_scheduler::order_warps() {
 }
 
 void shader_core_ctx::read_operands() {
-  // L.Jeanmougin : does m_operand_collector.step() introduce latency ?
   for (unsigned int i = 0; i < m_config->reg_file_port_throughput; ++i)
     m_operand_collector.step();
 }
 
 address_type coalesced_segment(address_type addr,
                                unsigned segment_size_lg2bytes) {
-  // L.Jeanmougin : coalesced_segment might tell if access is coalesced ?
   return (addr >> segment_size_lg2bytes);
 
 }
