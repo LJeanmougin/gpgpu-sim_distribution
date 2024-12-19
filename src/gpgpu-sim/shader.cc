@@ -1315,7 +1315,6 @@ void scheduler_unit::cycle() {
            (issued < max_issue)) {
       const warp_inst_t *pI = warp(warp_id).ibuffer_next_inst();
       // Jin: handle cdp latency; 
-      // L.Jeanmougin : WHAT IS CDP LATENCY ???? Might need to be disabled
       if (pI && pI->m_is_cdp && warp(warp_id).m_cdp_latency > 0) {
         assert(warp(warp_id).m_cdp_dummy);
         warp(warp_id).m_cdp_latency--;
