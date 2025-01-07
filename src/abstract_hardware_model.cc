@@ -284,6 +284,7 @@ void warp_inst_t::broadcast_barrier_reduction(
 }
 
 void warp_inst_t::generate_mem_accesses() {
+  return;
   if (empty() || op == MEMORY_BARRIER_OP || m_mem_accesses_created) return;
   if (!((op == LOAD_OP) || (op == TENSOR_CORE_LOAD_OP) || (op == STORE_OP) ||
         (op == TENSOR_CORE_STORE_OP)))
@@ -462,14 +463,18 @@ void warp_inst_t::generate_mem_accesses() {
       for (unsigned i = 0; i < data_size; i++) byte_mask.set(idx + i);
     }
     for (a = accesses.begin(); a != accesses.end(); ++a)
+    {
       m_accessq.push_back(mem_access_t(
           access_type, a->first, cache_block_size, is_write, a->second,
           byte_mask, mem_access_sector_mask_t(), m_config->gpgpu_ctx));
+      break; // L.Jeanmougin : Might take care of the coalescence problem
+    }
   }
 
   if (space.get_type() == global_space) {
     m_config->gpgpu_ctx->stats->ptx_file_line_stats_add_uncoalesced_gmem(
         pc, m_accessq.size() - starting_queue_size);
+        // pc, m_accessq.size() - starting_queue_size);
   }
   m_mem_accesses_created = true;
 }
@@ -698,6 +703,7 @@ void warp_inst_t::memory_coalescing_arch_atomic(bool is_write,
 void warp_inst_t::memory_coalescing_arch_reduce_and_send(
     bool is_write, mem_access_type access_type, const transaction_info &info,
     new_addr_type addr, unsigned segment_size) {
+  return; // L.Jeanmougin : Forbidding coalescence reduction
   assert((addr & (segment_size - 1)) == 0);
 
   const std::bitset<4> &q = info.chunks;

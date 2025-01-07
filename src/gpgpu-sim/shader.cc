@@ -1039,7 +1039,7 @@ void exec_shader_core_ctx::func_exec_inst(warp_inst_t &inst) {
   if (inst.is_load() || inst.is_store()) {
     inst.generate_mem_accesses();
     // L.Jeanmougin : generate_mem_accesses function should be explored
-    // inst.print_m_accessq();
+    inst.print_m_accessq();
   }
 }
 
@@ -2021,11 +2021,12 @@ bool ldst_unit::shared_cycle(warp_inst_t &inst, mem_stage_stall_type &rc_fail,
 
   bool stall = inst.dispatch_delay();
   // L.Jeanmougin : Trying to effectively supress shmem stalls
-  while(stall) stall = inst.dispatch_delay();
+  // while(stall) stall = inst.dispatch_delay();
   if (stall) {
     fail_type = S_MEM;
     rc_fail = BK_CONF;
     m_stats->gpgpu_n_shmem_bkconflict++;
+    std::cout << "Bank conflict" << std::endl;
   } else
     rc_fail = NO_RC_FAIL;
   return !stall;

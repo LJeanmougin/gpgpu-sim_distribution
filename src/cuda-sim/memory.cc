@@ -87,7 +87,9 @@ void memory_space_impl<BSIZE>::write(mem_addr_t addr, size_t length,
       src_offset += tx_bytes;
       current_addr += tx_bytes;
       nbytes_remain -= tx_bytes;
+      break;
     }
+    nbytes_remain = 0;
     assert(nbytes_remain == 0);
   }
   if (!m_watchpoints.empty()) {
@@ -134,6 +136,7 @@ template <unsigned BSIZE>
 void memory_space_impl<BSIZE>::read(mem_addr_t addr, size_t length,
                                     void *data) const {
   mem_addr_t index = addr >> m_log2_block_size;
+  // L.Jeanmougin : Doesn't seem to impact coalescence..
   if ((addr + length) <= (index + 1) * BSIZE) {
     // fast route for intra-block access
     read_single_block(index, addr, length, data);
@@ -142,7 +145,6 @@ void memory_space_impl<BSIZE>::read(mem_addr_t addr, size_t length,
     unsigned nbytes_remain = length;
     unsigned dst_offset = 0;
     mem_addr_t current_addr = addr;
-
     while (nbytes_remain > 0) {
       unsigned offset = current_addr & (BSIZE - 1);
       mem_addr_t page = current_addr >> m_log2_block_size;

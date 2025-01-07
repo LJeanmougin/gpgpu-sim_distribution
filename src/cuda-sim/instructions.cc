@@ -3375,7 +3375,8 @@ void ld_exec(const ptx_instruction *pI, ptx_thread_info *thread) {
   const operand_info &src1 = pI->src1();
 
   unsigned type = pI->get_type();
-
+  // L.Jeanmougin : trying to get rid of the coal
+  // It seems that this function is executed but "read" does nothing.
   ptx_reg_t src1_data = thread->get_operand_value(src1, dst, type, thread, 1);
   ptx_reg_t data;
   memory_space_t space = pI->get_space();

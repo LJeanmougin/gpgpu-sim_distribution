@@ -137,6 +137,6 @@ unsigned mem_fetch::get_num_flits(bool simt_to_mem) {
     sz = size();
   else
     sz = get_ctrl_size();
-
+  // L.Jeanmougin : Doesn't change anything to coalescence
   return (sz / icnt_flit_size) + ((sz % icnt_flit_size) ? 1 : 0);
 }
