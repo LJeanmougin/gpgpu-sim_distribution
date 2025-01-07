@@ -1268,6 +1268,8 @@ void scheduler_unit::order_by_priority(
   }
 }
 
+int inst_id = 0;
+
 void scheduler_unit::cycle() {
   SCHED_DPRINTF("scheduler_unit::cycle()\n");
   bool valid_inst =
@@ -1402,7 +1404,9 @@ void scheduler_unit::cycle() {
                                                   exec_unit_type_t::SP))
                   execute_on_SP = true;
 
+                // L.Jeanmougin : NONE OF THIS "IF" CONTENT IS EVER EXECUTED
                 if (execute_on_INT || execute_on_SP) {
+                  // L.Jeanmougin : Functional unit 1 (ALU) is handled here
                   // Jin: special for CDP api
                   if (pI->m_is_cdp && !warp(warp_id).m_cdp_dummy) {
                     assert(warp(warp_id).m_cdp_latency == 0);
@@ -1527,7 +1531,6 @@ void scheduler_unit::cycle() {
           {
             std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
             std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
-            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
           }
             
         }
@@ -1563,6 +1566,7 @@ void scheduler_unit::cycle() {
         }
       }
       m_num_issued_last_cycle = issued;
+      // L.Jeanmougin : Actual spot for issued instructions
       if (issued == 1)
         m_stats->single_issue_nums[m_id]++;
       else if (issued > 1)
@@ -2723,11 +2727,6 @@ void ldst_unit::issue(register_set &reg_set) {
 void ldst_unit::writeback() {
   // process next instruction that is going to writeback
   if (!m_next_wb.empty()) {
-    // L.Jeanmougin : With this print, we know that ld.global initiation is of 6 cycles
-    // and the writeback depends on thread mask. Having at least one active thread in a
-    // 8 threads section generates 1 access. It is likely that a ldst holds the unit
-    // until completion and thus interferes with other competing ldst instructions
-    // std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Writing back" << std::endl;
     if (m_operand_collector->writeback(m_next_wb)) {
       bool insn_completed = false;
       for (unsigned r = 0; r < MAX_OUTPUT_VALUES; r++) {
@@ -2894,8 +2893,6 @@ void ldst_unit::cycle() {
     } else {
       if (mf->get_type() == WRITE_ACK ||
           (m_config->gpgpu_perfect_mem && mf->get_is_write())) {
-        // L.Jeanmougin : Looking for store behavior
-        // std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Storing value" << std::endl; 
         m_core->store_ack(mf);
         m_response_fifo.pop_front();
         delete mf;
