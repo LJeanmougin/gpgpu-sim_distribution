@@ -1430,6 +1430,7 @@ void scheduler_unit::cycle() {
                 }
 
                 if (execute_on_SP) {
+                  std::cout << "ExecSP" << std::endl;
                   m_shader->issue_warp(*m_sp_out, pI, active_mask, warp_id,
                                        m_id);
                   issued++;
@@ -1437,6 +1438,7 @@ void scheduler_unit::cycle() {
                   warp_inst_issued = true;
                   previous_issued_inst_exec_type = exec_unit_type_t::SP;
                 } else if (execute_on_INT) {
+                  std::cout << "ExecINT" << std::endl;
                   m_shader->issue_warp(*m_int_out, pI, active_mask, warp_id,
                                        m_id);
                   issued++;
@@ -2024,8 +2026,8 @@ bool ldst_unit::shared_cycle(warp_inst_t &inst, mem_stage_stall_type &rc_fail,
   }
 
   bool stall = inst.dispatch_delay();
-  // L.Jeanmougin : Trying to effectively supress shmem stalls
-  // while(stall) stall = inst.dispatch_delay();
+  // L.Jeanmougin : This takes care of all the shared memory stalls
+  while(stall) stall = inst.dispatch_delay();
   if (stall) {
     fail_type = S_MEM;
     rc_fail = BK_CONF;
