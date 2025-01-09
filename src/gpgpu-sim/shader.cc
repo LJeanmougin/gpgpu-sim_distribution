@@ -681,7 +681,6 @@ void shader_core_stats::print(FILE *fout) const {
           gpu_stall_shd_mem_breakdown[L_MEM_ST]
                                      [COAL_STALL]);  // coalescing stall + bank
                                                      // conflict at data cache
-  // L.Jeanmougin : What is the coal stall source ?
   printf("gmemld %d\n",gpu_stall_shd_mem_breakdown[G_MEM_LD][COAL_STALL]);
   printf("gmemst %d\n",gpu_stall_shd_mem_breakdown[G_MEM_ST][COAL_STALL]);
   printf("lmemld %d\n",gpu_stall_shd_mem_breakdown[L_MEM_LD][COAL_STALL]);
@@ -892,7 +891,6 @@ const active_mask_t &exec_shader_core_ctx::get_active_mask(
   return m_simt_stack[warp_id]->get_active_mask();
 }
 
-// L.Jeanmougin : decode DOESN'T affect timing
 void shader_core_ctx::decode() {
   if (m_inst_fetch_buffer.m_valid) {
     // decode 1 or 2 instructions and place them into ibuffer
@@ -931,7 +929,6 @@ void shader_core_ctx::decode() {
 void shader_core_ctx::fetch() {
   if (!m_inst_fetch_buffer.m_valid) {
     if (m_L1I->access_ready()) {
-      // L.Jeanmougin : L1 deactivated = never goes here
       mem_fetch *mf = m_L1I->next_access();
       m_warp[mf->get_wid()]->clear_imiss_pending();
       m_inst_fetch_buffer =
@@ -981,8 +978,6 @@ void shader_core_ctx::fetch() {
         }
 
         // this code fetches instructions from the i-cache or generates memory
-        // L.Jeanmougin : Actual fetch of instructions
-        // It is slowed down by the issue latency, likely due to registers dependencies
         if (!m_warp[warp_id]->functional_done() &&
             !m_warp[warp_id]->imiss_pending() &&
             m_warp[warp_id]->ibuffer_empty()) {
@@ -1038,7 +1033,6 @@ void exec_shader_core_ctx::func_exec_inst(warp_inst_t &inst) {
   execute_warp_inst_t(inst);
   if (inst.is_load() || inst.is_store()) {
     inst.generate_mem_accesses();
-    // L.Jeanmougin : generate_mem_accesses function should be explored
     inst.print_m_accessq();
   }
 }
@@ -1131,7 +1125,6 @@ void shader_core_ctx::issue_warp(register_set &pipe_reg_set,
 
   updateSIMTStack(warp_id, *pipe_reg);
 
-  // L.Jeanmougin : regs reserv to check (maybe inflate the number of regs)
   m_scoreboard->reserveRegisters(*pipe_reg);
   m_warp[warp_id]->set_next_pc(next_inst->pc + next_inst->isize);
 }
@@ -1141,7 +1134,6 @@ void shader_core_ctx::issue() {
   unsigned j;
   for (unsigned i = 0; i < schedulers.size(); i++) {
     j = (Issue_Prio + i) % schedulers.size();
-    // L.Jeanmougin : No cost to scheduling
     schedulers[j]->cycle();
   }
   Issue_Prio = (Issue_Prio + 1) % schedulers.size();
@@ -1345,7 +1337,6 @@ void scheduler_unit::cycle() {
         } else {
           valid_inst = true;
           if (!m_scoreboard->checkCollision(warp_id, pI)) {
-            // printf("No scoreboard collision on cycle : %llu\n", m_shader->m_gpu->gpu_sim_cycle);
             m_shader->trace_file << "warp " << (*iter)->get_warp_id() << " : " << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
             SCHED_DPRINTF(
                 "Warp (warp_id %u, dynamic_warp_id %u) passes scoreboard\n",
@@ -1406,7 +1397,6 @@ void scheduler_unit::cycle() {
 
                 // L.Jeanmougin : NONE OF THIS "IF" CONTENT IS EVER EXECUTED
                 if (execute_on_INT || execute_on_SP) {
-                  // L.Jeanmougin : Functional unit 1 (ALU) is handled here
                   // Jin: special for CDP api
                   if (pI->m_is_cdp && !warp(warp_id).m_cdp_dummy) {
                     assert(warp(warp_id).m_cdp_latency == 0);
@@ -1430,7 +1420,6 @@ void scheduler_unit::cycle() {
                 }
 
                 if (execute_on_SP) {
-                  std::cout << "ExecSP" << std::endl;
                   m_shader->issue_warp(*m_sp_out, pI, active_mask, warp_id,
                                        m_id);
                   issued++;
@@ -1438,7 +1427,6 @@ void scheduler_unit::cycle() {
                   warp_inst_issued = true;
                   previous_issued_inst_exec_type = exec_unit_type_t::SP;
                 } else if (execute_on_INT) {
-                  std::cout << "ExecINT" << std::endl;
                   m_shader->issue_warp(*m_int_out, pI, active_mask, warp_id,
                                        m_id);
                   issued++;
@@ -1533,6 +1521,7 @@ void scheduler_unit::cycle() {
           {
             std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
             std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
+            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
           }
             
         }
@@ -1568,7 +1557,6 @@ void scheduler_unit::cycle() {
         }
       }
       m_num_issued_last_cycle = issued;
-      // L.Jeanmougin : Actual spot for issued instructions
       if (issued == 1)
         m_stats->single_issue_nums[m_id]++;
       else if (issued > 1)
@@ -1762,8 +1750,6 @@ unsigned shader_core_ctx::translate_local_memaddr(
   // During functional execution, each thread sees its own memory space for
   // local memory, but these need to be mapped to a shared address space for
   // timing simulation.  We do that mapping here.
-  // L.Jeanmougin : THIS MIGHT BE IT
-  // this translates the local memory address to shared address for TIMING SIMULATION
   address_type thread_base = 0;
   unsigned max_concurrent_threads = 0;
   if (m_config->gpgpu_local_mem_map) {
@@ -1830,7 +1816,6 @@ unsigned shader_core_ctx::translate_local_memaddr(
 
 /////////////////////////////////////////////////////////////////////////////////////////
 int shader_core_ctx::test_res_bus(int latency) {
-  // L.Jeanmougin : what is test_res_bus ?
   for (unsigned i = 0; i < num_result_bus; i++) {
     if (!m_result_bus[i]->test(latency)) {
       return i;
@@ -1982,7 +1967,6 @@ void shader_core_ctx::writeback() {
 
   warp_inst_t **preg = m_pipeline_reg[EX_WB].get_ready();
   warp_inst_t *pipe_reg = (preg == NULL) ? NULL : *preg;
-  // L.Jeanmougin : This part has nothing to do with scoreboard latency
   while (preg and !pipe_reg->empty()) {
     /*
      * Right now, the writeback stage drains all waiting instructions
@@ -2020,7 +2004,6 @@ bool ldst_unit::shared_cycle(warp_inst_t &inst, mem_stage_stall_type &rc_fail,
   if (inst.space.get_type() != shared_space) return true;
 
   if (inst.active_count() == 0) return true;
-  // L.Jeanmougin : dispatch delay might be constant
   if (inst.has_dispatch_delay()) {
     m_stats->gpgpu_n_shmem_bank_access[m_sid]++;
   }
@@ -2105,7 +2088,6 @@ mem_stage_stall_type ldst_unit::process_memory_access_queue(cache_t *cache,
 
 mem_stage_stall_type ldst_unit::process_memory_access_queue_l1cache(
     l1_cache *cache, warp_inst_t &inst) {
-  // L.Jeanmougin : Shared memory handling seems to be decoupled from L1$
   mem_stage_stall_type result = NO_RC_FAIL;
   if (inst.accessq_empty()) return result;
   if (m_config->m_L1D_config.l1_latency > 0) {
@@ -2940,7 +2922,7 @@ void ldst_unit::cycle() {
   enum mem_stage_stall_type rc_fail = NO_RC_FAIL;
   mem_stage_access_type type;
   bool done = true;
-  done &= shared_cycle(pipe_reg, rc_fail, type); // L.Jeanmougin : Maybe look into "shared_cycle" for shared latency ?
+  done &= shared_cycle(pipe_reg, rc_fail, type);
   done &= constant_cycle(pipe_reg, rc_fail, type);
   done &= texture_cycle(pipe_reg, rc_fail, type);
   done &= memory_cycle(pipe_reg, rc_fail, type);
@@ -2959,7 +2941,6 @@ void ldst_unit::cycle() {
       if (pipe_reg.space.get_type() == shared_space) {
         if (m_pipeline_reg[m_config->smem_latency - 1]->empty()) {
           // new shared memory request
-          // L.Jeanmougin : Pipeline reg of size smem latency maybe keeps track of requests in flight
           move_warp(m_pipeline_reg[m_config->smem_latency - 1], m_dispatch_reg);
           m_dispatch_reg->clear();
         }
@@ -4267,7 +4248,7 @@ bool opndcoll_rfu_t::writeback(warp_inst_t &inst) {
                        m_num_banks_per_sched, inst.get_schd_id()));
         inst.arch_reg.dst[op] = -1;
       } else {
-        return false; // L.Jeanmougin doesn't change anything since return value is ignored
+        return false;
       }
     }
   }
@@ -4285,8 +4266,6 @@ bool opndcoll_rfu_t::writeback(warp_inst_t &inst) {
         }
       }
       m_shader->incregfile_writes(active_count);
-    } else {
-      // L.Jeanmougin : writeback goes there (reg file isn't gated)
     }
   }
       m_shader->incregfile_writes(

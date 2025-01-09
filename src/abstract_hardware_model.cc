@@ -1202,7 +1202,6 @@ void core_t::execute_warp_inst_t(warp_inst_t &inst, unsigned warpId) {
       if (warpId == (unsigned(-1))) warpId = inst.warp_id();
       unsigned tid = m_warp_size * warpId + t;
       m_thread[tid]->ptx_exec_inst(inst, t);
-
       // virtual function
       checkExecutionStatusAndUpdate(inst, t, tid);
     }
