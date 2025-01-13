@@ -1521,7 +1521,7 @@ void scheduler_unit::cycle() {
           {
             std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
             std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
-            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
+            // std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
           }
             
         }
@@ -1578,11 +1578,10 @@ void scheduler_unit::cycle() {
   // idle cycles are the consequence of the execution of the last
   // issued instruction (opnd coll + exectuion + commit)
     m_stats->shader_cycle_distro[0]++;  // idle or control hazard
-  } 
-  else if (!ready_inst)
+  } else if (!ready_inst) {
     m_stats->shader_cycle_distro[1]++;  // waiting for RAW hazards (possibly due
                                         // to memory)
-  else if (!issued_inst) {
+  } else if (!issued_inst) {
     m_stats->shader_cycle_distro[2]++;  // pipeline stalled
   }
 }

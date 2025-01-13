@@ -415,6 +415,8 @@ void warp_inst_t::generate_mem_accesses() {
         }
       }
       assert(total_accesses > 0 && total_accesses <= m_config->warp_size);
+      // L.Jeanmougin : might be usefull if we want to include Shared Memory
+      // in the analysis
       cycles = total_accesses;  // shared memory conflicts modeled as larger
                                 // initiation interval
       m_config->gpgpu_ctx->stats->ptx_file_line_stats_add_smem_bank_conflict(
