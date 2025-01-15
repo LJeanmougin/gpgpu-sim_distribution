@@ -1521,7 +1521,7 @@ void scheduler_unit::cycle() {
           {
             std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
             std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
-            // std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
+            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
           }
             
         }
