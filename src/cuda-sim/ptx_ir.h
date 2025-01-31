@@ -1127,6 +1127,8 @@ class ptx_instruction : public warp_inst_t {
   void set_bar_type();
   void set_fp_or_int_archop();
   void set_mul_div_or_other_archop();
+  // L.Jeanmougin : mem impostor
+  void set_mem_impostor();
 
   basic_block_t *m_basic_block;
   unsigned m_uid;

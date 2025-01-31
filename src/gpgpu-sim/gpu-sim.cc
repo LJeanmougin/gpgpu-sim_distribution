@@ -619,6 +619,10 @@ void shader_core_config::reg_options(class OptionParser *opp) {
   option_parser_register(opp, "-gpgpu_num_tensor_core_units", OPT_UINT32,
                          &gpgpu_num_tensor_core_units,
                          "Number of tensor_core units (default=1)", "0");
+  // L.Jeanmougin : mem impostor
+  option_parser_register(opp, "-gpgpu_num_mem_impostor_units", OPT_UINT32,
+                         &gpgpu_num_mem_impostor_units,
+                         "Number of mem impostor units", "1");
   option_parser_register(
       opp, "-gpgpu_num_mem_units", OPT_UINT32, &gpgpu_num_mem_units,
       "Number if ldst units (default=1) WARNING: not hooked up to anything",

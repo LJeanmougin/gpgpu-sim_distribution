@@ -128,6 +128,7 @@ enum uarch_op_t {
   CALL_OPS,
   RET_OPS,
   EXIT_OPS,
+  MEM_IMPOSTOR_OP, // L.Jeanmougin : Special unit for memory imposture
   SPECIALIZED_UNIT_1_OP = SPEC_UNIT_START_ID,
   SPECIALIZED_UNIT_2_OP,
   SPECIALIZED_UNIT_3_OP,
@@ -166,7 +167,8 @@ enum special_operations_t {
   DP_DIV_OP,
   DP___OP,
   TENSOR__OP,
-  TEX__OP
+  TEX__OP,
+  MEM__IMPOSTOR_OP
 };
 
 typedef enum special_operations_t
@@ -180,6 +182,8 @@ enum operation_pipeline_t {
   TENSOR_CORE__OP,
   MEM__OP,
   SPECIALIZED__OP,
+  // L.Jeanmougin : mem impostor
+  MEM_IMPOSTOR__OP,
 };
 typedef enum operation_pipeline_t operation_pipeline;
 enum mem_operation_t { NOT_TEX, TEX };

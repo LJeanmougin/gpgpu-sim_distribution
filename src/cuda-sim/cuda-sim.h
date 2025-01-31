@@ -145,6 +145,10 @@ class cuda_sim {
   char *opcode_initiation_dp;
   char *opcode_initiation_sfu;
   char *opcode_initiation_tensor;
+  // L.Jeanmougin : Adding a memory unit impostor to avoid concurrency
+  char *opcode_latency_mem_impostor;
+  char *opcode_initiation_mem_impostor;
+  // L.Jeanmougin : End of the imposture
   int cp_count;
   int cp_cta_resume;
   int g_ptxinfo_error_detected;

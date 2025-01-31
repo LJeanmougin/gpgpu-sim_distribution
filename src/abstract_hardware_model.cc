@@ -284,7 +284,7 @@ void warp_inst_t::broadcast_barrier_reduction(
 }
 
 void warp_inst_t::generate_mem_accesses() {
-  return;
+  return; // L.Jeanmougin : no memory latencies
   if (empty() || op == MEMORY_BARRIER_OP || m_mem_accesses_created) return;
   if (!((op == LOAD_OP) || (op == TENSOR_CORE_LOAD_OP) || (op == STORE_OP) ||
         (op == TENSOR_CORE_STORE_OP)))

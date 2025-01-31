@@ -133,6 +133,10 @@ void shader_core_ctx::create_front_pipeline() {
            m_pipeline_reg[ID_OC_SFU].get_size());
     assert(m_config->gpgpu_num_sched_per_core ==
            m_pipeline_reg[ID_OC_MEM].get_size());
+    // L.Jeanmougin : mem impostor
+    assert(m_config->gpgpu_num_sched_per_core ==
+           m_pipeline_reg[ID_OC_MEM_IMPOSTOR].get_size());
+    // L.Jeanmougin : end of imposture
     if (m_config->gpgpu_tensor_core_avail)
       assert(m_config->gpgpu_num_sched_per_core ==
              m_pipeline_reg[ID_OC_TENSOR_CORE].get_size());
@@ -209,7 +213,9 @@ void shader_core_ctx::create_schedulers() {
             &m_pipeline_reg[ID_OC_SP], &m_pipeline_reg[ID_OC_DP],
             &m_pipeline_reg[ID_OC_SFU], &m_pipeline_reg[ID_OC_INT],
             &m_pipeline_reg[ID_OC_TENSOR_CORE], m_specilized_dispatch_reg,
-            &m_pipeline_reg[ID_OC_MEM], i));
+            &m_pipeline_reg[ID_OC_MEM],
+            // L.Jeanmougin : mem impostor
+            &m_pipeline_reg[ID_OC_MEM_IMPOSTOR], i));
         break;
       case CONCRETE_SCHEDULER_TWO_LEVEL_ACTIVE:
         schedulers.push_back(new two_level_active_scheduler(
@@ -217,7 +223,9 @@ void shader_core_ctx::create_schedulers() {
             &m_pipeline_reg[ID_OC_SP], &m_pipeline_reg[ID_OC_DP],
             &m_pipeline_reg[ID_OC_SFU], &m_pipeline_reg[ID_OC_INT],
             &m_pipeline_reg[ID_OC_TENSOR_CORE], m_specilized_dispatch_reg,
-            &m_pipeline_reg[ID_OC_MEM], i, m_config->gpgpu_scheduler_string));
+            &m_pipeline_reg[ID_OC_MEM], 
+            // L.Jeanmougin : mem impostor
+            &m_pipeline_reg[ID_OC_MEM_IMPOSTOR], i, m_config->gpgpu_scheduler_string));
         break;
       case CONCRETE_SCHEDULER_GTO:
         schedulers.push_back(new gto_scheduler(
@@ -225,7 +233,9 @@ void shader_core_ctx::create_schedulers() {
             &m_pipeline_reg[ID_OC_SP], &m_pipeline_reg[ID_OC_DP],
             &m_pipeline_reg[ID_OC_SFU], &m_pipeline_reg[ID_OC_INT],
             &m_pipeline_reg[ID_OC_TENSOR_CORE], m_specilized_dispatch_reg,
-            &m_pipeline_reg[ID_OC_MEM], i));
+            &m_pipeline_reg[ID_OC_MEM], 
+            // L.Jeanmougin : mem impostor
+            &m_pipeline_reg[ID_OC_MEM_IMPOSTOR], i));
         break;
       case CONCRETE_SCHEDULER_RRR:
         schedulers.push_back(new rrr_scheduler(
@@ -233,7 +243,9 @@ void shader_core_ctx::create_schedulers() {
             &m_pipeline_reg[ID_OC_SP], &m_pipeline_reg[ID_OC_DP],
             &m_pipeline_reg[ID_OC_SFU], &m_pipeline_reg[ID_OC_INT],
             &m_pipeline_reg[ID_OC_TENSOR_CORE], m_specilized_dispatch_reg,
-            &m_pipeline_reg[ID_OC_MEM], i));
+            &m_pipeline_reg[ID_OC_MEM], 
+            // L.Jeanmougin : mem impostor
+            &m_pipeline_reg[ID_OC_MEM_IMPOSTOR], i));
         break;
       case CONCRETE_SCHEDULER_OLDEST_FIRST:
         schedulers.push_back(new oldest_scheduler(
@@ -241,7 +253,9 @@ void shader_core_ctx::create_schedulers() {
             &m_pipeline_reg[ID_OC_SP], &m_pipeline_reg[ID_OC_DP],
             &m_pipeline_reg[ID_OC_SFU], &m_pipeline_reg[ID_OC_INT],
             &m_pipeline_reg[ID_OC_TENSOR_CORE], m_specilized_dispatch_reg,
-            &m_pipeline_reg[ID_OC_MEM], i));
+            &m_pipeline_reg[ID_OC_MEM], 
+            // L.Jeanmougin : mem impostor
+            &m_pipeline_reg[ID_OC_MEM_IMPOSTOR], i));
         break;
       case CONCRETE_SCHEDULER_WARP_LIMITING:
         schedulers.push_back(new swl_scheduler(
@@ -249,7 +263,9 @@ void shader_core_ctx::create_schedulers() {
             &m_pipeline_reg[ID_OC_SP], &m_pipeline_reg[ID_OC_DP],
             &m_pipeline_reg[ID_OC_SFU], &m_pipeline_reg[ID_OC_INT],
             &m_pipeline_reg[ID_OC_TENSOR_CORE], m_specilized_dispatch_reg,
-            &m_pipeline_reg[ID_OC_MEM], i, m_config->gpgpu_scheduler_string));
+            &m_pipeline_reg[ID_OC_MEM], 
+            // L.Jeanmougin : mem impostor
+            &m_pipeline_reg[ID_OC_MEM_IMPOSTOR], i, m_config->gpgpu_scheduler_string));
         break;
       default:
         abort();
@@ -268,7 +284,7 @@ void shader_core_ctx::create_schedulers() {
 
 void shader_core_ctx::create_exec_pipeline() {
   // op collector configuration
-  enum { SP_CUS, DP_CUS, SFU_CUS, TENSOR_CORE_CUS, INT_CUS, MEM_CUS, GEN_CUS };
+  enum { SP_CUS, DP_CUS, SFU_CUS, TENSOR_CORE_CUS, INT_CUS, MEM_CUS, GEN_CUS, /*mem impostor*/MEM_IMPOSTOR_CUS };
 
   opndcoll_rfu_t::port_vector_t in_ports;
   opndcoll_rfu_t::port_vector_t out_ports;
@@ -284,9 +300,13 @@ void shader_core_ctx::create_exec_pipeline() {
     in_ports.push_back(&m_pipeline_reg[ID_OC_SP]);
     in_ports.push_back(&m_pipeline_reg[ID_OC_SFU]);
     in_ports.push_back(&m_pipeline_reg[ID_OC_MEM]);
+    // L.Jeanmougin : mem impostor
+    in_ports.push_back(&m_pipeline_reg[ID_OC_MEM_IMPOSTOR]);
     out_ports.push_back(&m_pipeline_reg[OC_EX_SP]);
     out_ports.push_back(&m_pipeline_reg[OC_EX_SFU]);
     out_ports.push_back(&m_pipeline_reg[OC_EX_MEM]);
+    // L.Jeanmougin : mem impostor
+    out_ports.push_back(&m_pipeline_reg[OC_EX_MEM_IMPOSTOR]);
     if (m_config->gpgpu_tensor_core_avail) {
       in_ports.push_back(&m_pipeline_reg[ID_OC_TENSOR_CORE]);
       out_ports.push_back(&m_pipeline_reg[OC_EX_TENSOR_CORE]);
@@ -332,6 +352,12 @@ void shader_core_ctx::create_exec_pipeline() {
     m_operand_collector.add_cu_set(
         INT_CUS, m_config->gpgpu_operand_collector_num_units_int,
         m_config->gpgpu_operand_collector_num_out_ports_int);
+    // L.Jeanmougin : mem impostor
+    m_operand_collector.add_cu_set(
+        MEM_IMPOSTOR_CUS,
+        m_config->gpgpu_operand_collector_num_units_mem_impostor,
+        m_config->gpgpu_operand_collector_num_out_ports_mem_impostor);
+    // L.Jeanmougin : end of imposture
 
     for (unsigned i = 0; i < m_config->gpgpu_operand_collector_num_in_ports_sp;
          i++) {
@@ -392,6 +418,17 @@ void shader_core_ctx::create_exec_pipeline() {
       m_operand_collector.add_port(in_ports, out_ports, cu_sets);
       in_ports.clear(), out_ports.clear(), cu_sets.clear();
     }
+    // L.Jeanmougin : mem impostor
+    for (unsigned i = 0; i < m_config->gpgpu_operand_collector_num_in_ports_mem_impostor;
+    i++) {
+      in_ports.push_back(&m_pipeline_reg[ID_OC_MEM_IMPOSTOR]);
+      out_ports.push_back(&m_pipeline_reg[OC_EX_MEM_IMPOSTOR]);
+      cu_sets.push_back((unsigned)MEM_IMPOSTOR_CUS);
+      cu_sets.push_back((unsigned)GEN_CUS);
+      m_operand_collector.add_port(in_ports, out_ports, cu_sets);
+      in_ports.clear(), out_ports.clear(), cu_sets.clear();
+    }
+    // L.Jeanmougin : end of imposture
   }
 
   m_operand_collector.init(m_config->gpgpu_num_reg_banks, this);
@@ -400,6 +437,8 @@ void shader_core_ctx::create_exec_pipeline() {
       m_config->gpgpu_num_sp_units + m_config->gpgpu_num_dp_units +
       m_config->gpgpu_num_sfu_units + m_config->gpgpu_num_tensor_core_units +
       m_config->gpgpu_num_int_units + m_config->m_specialized_unit_num +
+      // L.Jeanmougin : mem impostor
+      m_config->gpgpu_num_mem_impostor_units +
       1;  // sp_unit, sfu, dp, tensor, int, ldst_unit
   // m_dispatch_port = new enum pipeline_stage_name_t[ m_num_function_units ];
   // m_issue_port = new enum pipeline_stage_name_t[ m_num_function_units ];
@@ -433,6 +472,13 @@ void shader_core_ctx::create_exec_pipeline() {
     m_fu.push_back(new tensor_core(&m_pipeline_reg[EX_WB], m_config, this, k));
     m_dispatch_port.push_back(ID_OC_TENSOR_CORE);
     m_issue_port.push_back(OC_EX_TENSOR_CORE);
+  }
+
+  // L.Jeanmougin : mem impostor
+  for (unsigned k = 0; k < m_config->gpgpu_num_mem_impostor_units; k++) {
+    m_fu.push_back(new mem_impostor_unit(&m_pipeline_reg[EX_WB], m_config, this, k));
+    m_dispatch_port.push_back(ID_OC_MEM_IMPOSTOR);
+    m_issue_port.push_back(OC_EX_MEM_IMPOSTOR);
   }
 
   for (unsigned j = 0; j < m_config->m_specialized_unit.size(); j++) {
@@ -1486,6 +1532,24 @@ void scheduler_unit::cycle() {
                   warp_inst_issued = true;
                   previous_issued_inst_exec_type = exec_unit_type_t::TENSOR;
                 }
+              // L.Jeanmougin : start of memory imposture
+              // } else if ((pI->op == MEM_IMPOSTOR_OP) &&
+              //            !(diff_exec_units &&
+              //              previous_issued_inst_exec_type ==
+              //                  exec_unit_type_t::MEM_IMPOSTOR)) {
+              //   bool mem_core_pipe_avail =
+              //       (m_shader->m_config->gpgpu_num_mem_impostor_units > 0) &&
+              //       m_mem_impostor_out->has_free(
+              //           m_shader->m_config->sub_core_model, m_id);
+              //   if (mem_core_pipe_avail) {
+              //     m_shader->issue_warp(*m_mem_impostor_out, pI, active_mask,
+              //                          warp_id, m_id);
+              //     issued++;
+              //     issued_inst = true;
+              //     warp_inst_issued = true;
+              //     previous_issued_inst_exec_type =
+              //         exec_unit_type_t::MEM_IMPOSTOR;
+              //   }
               } else if ((pI->op >= SPEC_UNIT_START_ID) &&
                          !(diff_exec_units &&
                            previous_issued_inst_exec_type ==
@@ -1508,8 +1572,8 @@ void scheduler_unit::cycle() {
                   previous_issued_inst_exec_type =
                       exec_unit_type_t::SPECIALIZED;
                 }
+              // L.Jeanmougin : end of memory imposture
               }
-
             }  // end of else
           } else {
             SCHED_DPRINTF(
@@ -1705,10 +1769,13 @@ swl_scheduler::swl_scheduler(shader_core_stats *stats, shader_core_ctx *shader,
                              register_set *sfu_out, register_set *int_out,
                              register_set *tensor_core_out,
                              std::vector<register_set *> &spec_cores_out,
-                             register_set *mem_out, int id, char *config_string)
+                             register_set *mem_out, 
+                             // L.Jeanmougin : mem impostor
+                             register_set *mem_impostor_out,
+                             int id, char *config_string)
     : scheduler_unit(stats, shader, scoreboard, simt, warp, sp_out, dp_out,
                      sfu_out, int_out, tensor_core_out, spec_cores_out, mem_out,
-                     id) {
+                     mem_impostor_out ,id) {
   unsigned m_prioritization_readin;
   int ret = sscanf(config_string, "warp_limiting:%d:%d",
                    &m_prioritization_readin, &m_num_warps_to_limit);
@@ -2439,6 +2506,16 @@ void sp_unit::active_lanes_in_pipeline() {
   m_core->incfuactivelanes_stat(active_count);
   m_core->incfumemactivelanes_stat(active_count);
 }
+
+// L.Jeanmougin : mem impostor
+void mem_impostor_unit::active_lanes_in_pipeline() {
+  unsigned active_count = pipelined_simd_unit::get_active_lanes_in_pipeline();
+  assert(active_count <= m_core->get_config()->warp_size);
+  m_core->incspactivelanes_stat(active_count);
+  m_core->incfuactivelanes_stat(active_count);
+  m_core->incfumemactivelanes_stat(active_count); 
+}
+
 void dp_unit::active_lanes_in_pipeline() {
   unsigned active_count = pipelined_simd_unit::get_active_lanes_in_pipeline();
   assert(active_count <= m_core->get_config()->warp_size);
@@ -2508,6 +2585,16 @@ int_unit::int_unit(register_set *result_port, const shader_core_config *config,
   m_name = "INT ";
 }
 
+// L.Jeanmougin : mem impostor
+mem_impostor_unit::mem_impostor_unit(register_set *result_port,
+                                     const shader_core_config *config,
+                                     shader_core_ctx *core,
+                                     unsigned issue_reg_id)
+    : pipelined_simd_unit(result_port, config, config->max_int_latency, core,
+                          issue_reg_id) {
+  m_name = "MEM_IMPOSTOR";
+}
+
 void sp_unit ::issue(register_set &source_reg) {
   warp_inst_t **ready_reg =
       source_reg.get_ready(m_config->sub_core_model, m_issue_reg_id);
@@ -2542,6 +2629,14 @@ void int_unit ::issue(register_set &source_reg) {
   (*ready_reg)->op_pipe = INTP__OP;
   m_core->incsp_stat(m_core->get_config()->warp_size, (*ready_reg)->latency);
   pipelined_simd_unit::issue(source_reg);
+}
+
+// L.Jeanmougin : mem impostor
+void mem_impostor_unit ::issue(register_set &source_reg) {
+  warp_inst_t **ready_reg =
+      source_reg.get_ready(m_config->sub_core_model, m_issue_reg_id);
+  (*ready_reg)->op_pipe = MEM_IMPOSTOR__OP;
+  m_core->incsp_stat(m_core->get_config()->warp_size, (*ready_reg)->latency);
 }
 
 pipelined_simd_unit::pipelined_simd_unit(register_set *result_port,
@@ -3647,6 +3742,8 @@ void shader_core_config::set_pipeline_latency() {
   unsigned dp_latency[5];
   unsigned sfu_latency;
   unsigned tensor_latency;
+  // L.Jeanmougin : mem impostor
+  unsigned mem_impostor_latency;
 
   /*
    * [0] ADD,SUB
@@ -3667,6 +3764,8 @@ void shader_core_config::set_pipeline_latency() {
          &dp_latency[4]);
   sscanf(gpgpu_ctx->func_sim->opcode_latency_sfu, "%u", &sfu_latency);
   sscanf(gpgpu_ctx->func_sim->opcode_latency_tensor, "%u", &tensor_latency);
+  // L.Jeanmougin : mem impostor
+  sscanf(gpgpu_ctx->func_sim->opcode_latency_mem_impostor, "%u", &mem_impostor_latency);
 
   // all div operation are executed on sfu
   // assume that the max latency are dp div or normal sfu_latency
@@ -3676,6 +3775,8 @@ void shader_core_config::set_pipeline_latency() {
   max_int_latency = std::max(int_latency[1], int_latency[5]);
   max_dp_latency = dp_latency[1];
   max_tensor_core_latency = tensor_latency;
+  // L.Jeanmougin : mem impostor
+  max_mem_impostor_latency = mem_impostor_latency;
 }
 
 void shader_core_ctx::cycle() {

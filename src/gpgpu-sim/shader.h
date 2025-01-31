@@ -83,7 +83,8 @@ enum exec_unit_type_t {
   DP = 4,
   INT = 5,
   TENSOR = 6,
-  SPECIALIZED = 7
+  SPECIALIZED = 7,
+  MEM_IMPOSTOR = 8
 };
 
 class thread_ctx_t {
@@ -382,7 +383,9 @@ class scheduler_unit {  // this can be copied freely, so can be used in std
                  register_set *dp_out, register_set *sfu_out,
                  register_set *int_out, register_set *tensor_core_out,
                  std::vector<register_set *> &spec_cores_out,
-                 register_set *mem_out, int id)
+                 register_set *mem_out,
+                 // L.Jeanmougin : mem impostor
+                 register_set *mem_impostor_out, int id)
       : m_supervised_warps(),
         m_stats(stats),
         m_shader(shader),
@@ -395,6 +398,8 @@ class scheduler_unit {  // this can be copied freely, so can be used in std
         m_int_out(int_out),
         m_tensor_core_out(tensor_core_out),
         m_mem_out(mem_out),
+        // L.Jeanmougin : mem impostor
+        m_mem_impostor_out(mem_impostor_out),
         m_spec_cores_out(spec_cores_out),
         m_id(id) {}
   virtual ~scheduler_unit() {}
@@ -482,6 +487,7 @@ class scheduler_unit {  // this can be copied freely, so can be used in std
   register_set *m_int_out;
   register_set *m_tensor_core_out;
   register_set *m_mem_out;
+  register_set *m_mem_impostor_out;
   std::vector<register_set *> &m_spec_cores_out;
   unsigned m_num_issued_last_cycle;
   unsigned m_current_turn_warp;
@@ -497,10 +503,12 @@ class lrr_scheduler : public scheduler_unit {
                 register_set *dp_out, register_set *sfu_out,
                 register_set *int_out, register_set *tensor_core_out,
                 std::vector<register_set *> &spec_cores_out,
-                register_set *mem_out, int id)
+                register_set *mem_out,
+                // L.Jeanmougin : mem impostor
+                register_set *mem_impostor_out , int id)
       : scheduler_unit(stats, shader, scoreboard, simt, warp, sp_out, dp_out,
                        sfu_out, int_out, tensor_core_out, spec_cores_out,
-                       mem_out, id) {}
+                       mem_out, mem_impostor_out, id) {}
   virtual ~lrr_scheduler() {}
   virtual void order_warps();
   virtual void done_adding_supervised_warps() {
@@ -516,10 +524,12 @@ class rrr_scheduler : public scheduler_unit {
                 register_set *dp_out, register_set *sfu_out,
                 register_set *int_out, register_set *tensor_core_out,
                 std::vector<register_set *> &spec_cores_out,
-                register_set *mem_out, int id)
+                register_set *mem_out,
+                // L.Jeanmougin : mem impostor 
+                register_set *mem_impostor_out, int id)
       : scheduler_unit(stats, shader, scoreboard, simt, warp, sp_out, dp_out,
                        sfu_out, int_out, tensor_core_out, spec_cores_out,
-                       mem_out, id) {}
+                       mem_out, mem_impostor_out, id) {}
   virtual ~rrr_scheduler() {}
   virtual void order_warps();
   virtual void done_adding_supervised_warps() {
@@ -535,10 +545,12 @@ class gto_scheduler : public scheduler_unit {
                 register_set *dp_out, register_set *sfu_out,
                 register_set *int_out, register_set *tensor_core_out,
                 std::vector<register_set *> &spec_cores_out,
-                register_set *mem_out, int id)
+                register_set *mem_out, 
+                // L.Jeanmougin : mem impostor
+                register_set *mem_impostor_out, int id)
       : scheduler_unit(stats, shader, scoreboard, simt, warp, sp_out, dp_out,
                        sfu_out, int_out, tensor_core_out, spec_cores_out,
-                       mem_out, id) {}
+                       mem_out, mem_impostor_out, id) {}
   virtual ~gto_scheduler() {}
   virtual void order_warps();
   virtual void done_adding_supervised_warps() {
@@ -554,10 +566,12 @@ class oldest_scheduler : public scheduler_unit {
                    register_set *dp_out, register_set *sfu_out,
                    register_set *int_out, register_set *tensor_core_out,
                    std::vector<register_set *> &spec_cores_out,
-                   register_set *mem_out, int id)
+                   register_set *mem_out,
+                   // L.Jeanmougin : mem impostor
+                   register_set *mem_impostor_out, int id)
       : scheduler_unit(stats, shader, scoreboard, simt, warp, sp_out, dp_out,
                        sfu_out, int_out, tensor_core_out, spec_cores_out,
-                       mem_out, id) {}
+                       mem_out, mem_impostor_out, id) {}
   virtual ~oldest_scheduler() {}
   virtual void order_warps();
   virtual void done_adding_supervised_warps() {
@@ -574,10 +588,12 @@ class two_level_active_scheduler : public scheduler_unit {
                              register_set *sfu_out, register_set *int_out,
                              register_set *tensor_core_out,
                              std::vector<register_set *> &spec_cores_out,
-                             register_set *mem_out, int id, char *config_str)
+                             register_set *mem_out, 
+                             // L.Jeanmougin : mem impostor
+                             register_set *mem_impostor_out, int id, char *config_str)
       : scheduler_unit(stats, shader, scoreboard, simt, warp, sp_out, dp_out,
                        sfu_out, int_out, tensor_core_out, spec_cores_out,
-                       mem_out, id),
+                       mem_out, mem_impostor_out, id),
         m_pending_warps() {
     unsigned inner_level_readin;
     unsigned outer_level_readin;
@@ -624,7 +640,9 @@ class swl_scheduler : public scheduler_unit {
                 register_set *dp_out, register_set *sfu_out,
                 register_set *int_out, register_set *tensor_core_out,
                 std::vector<register_set *> &spec_cores_out,
-                register_set *mem_out, int id, char *config_string);
+                register_set *mem_out, 
+                // L.Jeanmougin : mem impostor
+                register_set *mem_impostor_out, int id, char *config_string);
   virtual ~swl_scheduler() {}
   virtual void order_warps();
   virtual void done_adding_supervised_warps() {
@@ -1278,6 +1296,8 @@ class int_unit : public pipelined_simd_unit {
         return false;
       case DP_OP:
         return false;
+      case MEM_IMPOSTOR_OP:
+        return false;
       default:
         break;
     }
@@ -1308,6 +1328,8 @@ class sp_unit : public pipelined_simd_unit {
         return false;
       case DP_OP:
         return false;
+      case MEM_IMPOSTOR_OP:
+        return false;
       default:
         break;
     }
@@ -1316,6 +1338,41 @@ class sp_unit : public pipelined_simd_unit {
   virtual void active_lanes_in_pipeline();
   virtual void issue(register_set &source_reg);
   bool is_issue_partitioned() { return true; }
+};
+
+// L.Jeanmougin : mem impostor
+class mem_impostor_unit : public pipelined_simd_unit {
+  public:
+   mem_impostor_unit(register_set *result_port,
+                     const shader_core_config *config, shader_core_ctx *core,
+                     unsigned issue_reg_id);
+
+   virtual bool can_issue(const warp_inst_t &inst) const {
+     switch (inst.op) {
+       case SFU_OP:
+         return false;
+       case LOAD_OP:
+         return false;
+       case TENSOR_CORE_LOAD_OP:
+         return false;
+       case STORE_OP:
+         return false;
+       case TENSOR_CORE_STORE_OP:
+         return false;
+       case MEMORY_BARRIER_OP:
+         return false;
+       case DP_OP:
+         return false;
+       case SP_OP:
+         return false;
+       default:
+         break;
+     }
+     return pipelined_simd_unit::can_issue(inst);
+   }
+   virtual void active_lanes_in_pipeline();
+   virtual void issue(register_set &source_reg);
+   bool is_issue_partitioned() { return true; }
 };
 
 class specialized_unit : public pipelined_simd_unit {
@@ -1490,6 +1547,10 @@ enum pipeline_stage_name_t {
   EX_WB,
   ID_OC_TENSOR_CORE,
   OC_EX_TENSOR_CORE,
+  // L.Jeanmougin : mem impostor
+  ID_OC_MEM_IMPOSTOR,
+  OC_EX_MEM_IMPOSTOR,
+  // L.Jeanmougin : end of imposture
   N_PIPELINE_STAGES
 };
 
@@ -1497,7 +1558,11 @@ const char *const pipeline_stage_name_decode[] = {
     "ID_OC_SP",          "ID_OC_DP",         "ID_OC_INT", "ID_OC_SFU",
     "ID_OC_MEM",         "OC_EX_SP",         "OC_EX_DP",  "OC_EX_INT",
     "OC_EX_SFU",         "OC_EX_MEM",        "EX_WB",     "ID_OC_TENSOR_CORE",
-    "OC_EX_TENSOR_CORE", "N_PIPELINE_STAGES"};
+    "OC_EX_TENSOR_CORE", 
+    // L.Jeanmougin : mem impostor
+    "ID_OC_MEM_IMPOSTOR", "OC_EX_MEM_IMPOSTOR",
+    // L.Jeanmougin : end of imposture
+    "N_PIPELINE_STAGES"};
 
 struct specialized_unit_params {
   unsigned latency;
@@ -1653,6 +1718,8 @@ class shader_core_config : public core_config {
   int gpgpu_operand_collector_num_units_mem;
   int gpgpu_operand_collector_num_units_gen;
   int gpgpu_operand_collector_num_units_int;
+  // L.Jeanmougin : mem impostor
+  int gpgpu_operand_collector_num_units_mem_impostor;
 
   unsigned int gpgpu_operand_collector_num_in_ports_sp;
   unsigned int gpgpu_operand_collector_num_in_ports_dp;
@@ -1661,6 +1728,8 @@ class shader_core_config : public core_config {
   unsigned int gpgpu_operand_collector_num_in_ports_mem;
   unsigned int gpgpu_operand_collector_num_in_ports_gen;
   unsigned int gpgpu_operand_collector_num_in_ports_int;
+  // L.Jeanmougin : mem impostor
+  unsigned int gpgpu_operand_collector_num_in_ports_mem_impostor;
 
   unsigned int gpgpu_operand_collector_num_out_ports_sp;
   unsigned int gpgpu_operand_collector_num_out_ports_dp;
@@ -1669,6 +1738,8 @@ class shader_core_config : public core_config {
   unsigned int gpgpu_operand_collector_num_out_ports_mem;
   unsigned int gpgpu_operand_collector_num_out_ports_gen;
   unsigned int gpgpu_operand_collector_num_out_ports_int;
+  // L.Jeanmougin : mem impostor
+  unsigned int gpgpu_operand_collector_num_out_ports_mem_impostor;
 
   unsigned int gpgpu_num_sp_units;
   unsigned int gpgpu_tensor_core_avail;
@@ -1677,6 +1748,8 @@ class shader_core_config : public core_config {
   unsigned int gpgpu_num_tensor_core_units;
   unsigned int gpgpu_num_mem_units;
   unsigned int gpgpu_num_int_units;
+  // L.Jeanmougin : mem impostor
+  unsigned int gpgpu_num_mem_impostor_units;
 
   // Shader core resources
   unsigned gpgpu_shader_registers;
@@ -1693,6 +1766,8 @@ class shader_core_config : public core_config {
   unsigned max_sfu_latency;
   unsigned max_dp_latency;
   unsigned max_tensor_core_latency;
+  // L.Jeanmougin : mem impostor
+  unsigned max_mem_impostor_latency;
 
   unsigned n_simt_cores_per_cluster;
   unsigned n_simt_clusters;

@@ -167,6 +167,7 @@ void symbol_table::add_function(function_info *func, const char *filename,
   char buf[1024];
   snprintf(buf, 1024, "%s:%u", filename, linenumber);
   type_info *type = add_type(func);
+  std::cout << "here" << std::endl;
   symbol *s = new symbol(func->get_name().c_str(), type, buf, 0, gpgpu_ctx);
   s->set_function(func);
   m_symbols[func->get_name()] = s;

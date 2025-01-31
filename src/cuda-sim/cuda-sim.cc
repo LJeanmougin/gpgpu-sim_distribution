@@ -114,6 +114,18 @@ void cuda_sim::ptx_opcocde_latency_options(option_parser_t opp) {
                          "Opcode initiation intervals for tensor instructions"
                          "Default 64",
                          "64");
+  // L.Jeanmougin : Parsing configuration for impostor mem unit
+  option_parser_register(opp, "-ptx_opcode_latency_mem_impostor", OPT_CSTR,
+                         &opcode_latency_mem_impostor,
+                         "Opcode latency for memory imposture", 
+                         "Default 100"
+                         "100");
+  option_parser_register(opp, "-ptx_opcode_initiation_mem_impostor", OPT_CSTR,
+                         &opcode_latency_mem_impostor,
+                         "Opcode initiation for memory imposture" 
+                         "Default 1",
+                         "1");
+  // L.Jeanmougin : End of imposture
   option_parser_register(opp, "-cdp_latency", OPT_CSTR, &cdp_latency_str,
                          "CDP API latency <cudaStreamCreateWithFlags, \
 cudaGetParameterBufferV2_init_perWarp, cudaGetParameterBufferV2_perKernel, \
@@ -739,6 +751,13 @@ void ptx_instruction::set_bar_type() {
   }
 }
 
+// L.Jeanmougin : mem impostor
+void ptx_instruction::set_mem_impostor() {
+  if(m_opcode == MEM_IMPOSTOR_OP) {
+    sp_op = MEM__IMPOSTOR_OP;
+  }
+}
+
 void ptx_instruction::set_opcode_and_latency() {
   unsigned int_latency[6];
   unsigned fp_latency[5];
@@ -750,6 +769,10 @@ void ptx_instruction::set_opcode_and_latency() {
   unsigned dp_init[5];
   unsigned sfu_init;
   unsigned tensor_init;
+  // L.Jeanmougin : Memory imposture
+  unsigned mem_impostor_latency;
+  unsigned mem_impostor_init;
+  // L.Jeanmougin : End of imposture
   /*
    * [0] ADD,SUB
    * [1] MAX,Min
@@ -778,6 +801,10 @@ void ptx_instruction::set_opcode_and_latency() {
          &dp_init[0], &dp_init[1], &dp_init[2], &dp_init[3], &dp_init[4]);
   sscanf(gpgpu_ctx->func_sim->opcode_initiation_sfu, "%u", &sfu_init);
   sscanf(gpgpu_ctx->func_sim->opcode_initiation_tensor, "%u", &tensor_init);
+  // L.Jeanmougin : Creating an impostor for memory accesses
+  sscanf(gpgpu_ctx->func_sim->opcode_latency_mem_impostor, "%u", &mem_impostor_latency);
+  sscanf(gpgpu_ctx->func_sim->opcode_initiation_mem_impostor, "%u", &mem_impostor_init);
+  // L.Jeanmougin : End of the imposture
   sscanf(gpgpu_ctx->func_sim->cdp_latency_str, "%u,%u,%u,%u,%u",
          &gpgpu_ctx->func_sim->cdp_latency[0],
          &gpgpu_ctx->func_sim->cdp_latency[1],
@@ -797,6 +824,7 @@ void ptx_instruction::set_opcode_and_latency() {
   op = ALU_OP;
   mem_op = NOT_TEX;
   initiation_interval = latency = 1;
+  // L.Jeanmougin : mem impostor -> replaced all memory accesses
   switch (m_opcode) {
     case MOV_OP:
       assert(!(has_memory_read() && has_memory_write()));
@@ -1155,6 +1183,7 @@ void ptx_instruction::pre_decode() {
 
   set_opcode_and_latency();
   set_bar_type();
+  set_mem_impostor();
   // Get register operands
   int n = 0, m = 0;
   ptx_instruction::const_iterator opr = op_iter_begin();
