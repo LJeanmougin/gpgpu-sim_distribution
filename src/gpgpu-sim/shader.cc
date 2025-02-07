@@ -123,7 +123,6 @@ void shader_core_ctx::create_front_pipeline() {
                      m_config->m_specialized_unit[j].name));
     m_config->m_specialized_unit[j].OC_EX_SPEC_ID = m_pipeline_reg.size() - 1;
   }
-
   if (m_config->sub_core_model) {
     // in subcore model, each scheduler should has its own issue register, so
     // ensure num scheduler = reg width
@@ -270,6 +269,7 @@ void shader_core_ctx::create_schedulers() {
       default:
         abort();
     };
+    std::cout << "Creating schedulers" << std::endl;
   }
 
   for (unsigned i = 0; i < m_warp.size(); i++) {
@@ -1410,7 +1410,8 @@ void scheduler_unit::cycle() {
             } else {
               // This code need to be refactored
               if (pI->op != TENSOR_CORE_OP && pI->op != SFU_OP &&
-                  pI->op != DP_OP && !(pI->op >= SPEC_UNIT_START_ID)) {
+                  pI->op != DP_OP && !(pI->op >= SPEC_UNIT_START_ID)
+                  && pI->op != MEM_IMPOSTOR_OP) {
                 bool execute_on_SP = false;
                 bool execute_on_INT = false;
 
@@ -1465,6 +1466,7 @@ void scheduler_unit::cycle() {
                 }
 
                 if (execute_on_SP) {
+                  // m_shader->issue_warp(*m_sp_out, pI, active_mask, warp_id,
                   m_shader->issue_warp(*m_sp_out, pI, active_mask, warp_id,
                                        m_id);
                   issued++;
@@ -1533,23 +1535,24 @@ void scheduler_unit::cycle() {
                   previous_issued_inst_exec_type = exec_unit_type_t::TENSOR;
                 }
               // L.Jeanmougin : start of memory imposture
-              // } else if ((pI->op == MEM_IMPOSTOR_OP) &&
-              //            !(diff_exec_units &&
-              //              previous_issued_inst_exec_type ==
-              //                  exec_unit_type_t::MEM_IMPOSTOR)) {
-              //   bool mem_core_pipe_avail =
-              //       (m_shader->m_config->gpgpu_num_mem_impostor_units > 0) &&
-              //       m_mem_impostor_out->has_free(
-              //           m_shader->m_config->sub_core_model, m_id);
-              //   if (mem_core_pipe_avail) {
-              //     m_shader->issue_warp(*m_mem_impostor_out, pI, active_mask,
-              //                          warp_id, m_id);
-              //     issued++;
-              //     issued_inst = true;
-              //     warp_inst_issued = true;
-              //     previous_issued_inst_exec_type =
-              //         exec_unit_type_t::MEM_IMPOSTOR;
-              //   }
+              } else if ((pI->op == MEM_IMPOSTOR_OP) &&
+                         !(diff_exec_units &&
+                           previous_issued_inst_exec_type ==
+                               exec_unit_type_t::MEM_IMPOSTOR)) {
+                                std::cout << "MEM IMPOSTOR" << std::endl;
+                bool mem_core_pipe_avail =
+                    (m_shader->m_config->gpgpu_num_mem_impostor_units > 0) &&
+                    m_mem_impostor_out->has_free(
+                        m_shader->m_config->sub_core_model, m_id);
+                if (mem_core_pipe_avail) {
+                  m_shader->issue_warp(*m_mem_impostor_out, pI, active_mask,
+                                       warp_id, m_id);
+                  issued++;
+                  issued_inst = true;
+                  warp_inst_issued = true;
+                  previous_issued_inst_exec_type =
+                      exec_unit_type_t::MEM_IMPOSTOR;
+                }
               } else if ((pI->op >= SPEC_UNIT_START_ID) &&
                          !(diff_exec_units &&
                            previous_issued_inst_exec_type ==
@@ -1585,8 +1588,7 @@ void scheduler_unit::cycle() {
             std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
             std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
             std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
-          }
-            
+          } 
         }
       } else if (valid) {
         // this case can happen after a return instruction in diverged warp
@@ -2000,7 +2002,6 @@ void shader_core_ctx::warp_inst_complete(const warp_inst_t &inst) {
       printf("[warp_inst_complete] uid=%u core=%u warp=%u pc=%#x @ time=%llu \n",
              inst.get_uid(), m_sid, inst.warp_id(), inst.pc,  m_gpu->gpu_tot_sim_cycle +  m_gpu->gpu_sim_cycle);
 #endif
-  // std::cout << "Cycle : " << m_gpu->gpu_sim_cycle << " | Completed instruction : " << m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(inst.pc).c_str() << std::endl;
   if (inst.op_pipe == SP__OP)
     m_stats->m_num_sp_committed[m_sid]++;
   else if (inst.op_pipe == SFU__OP)

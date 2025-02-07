@@ -508,6 +508,12 @@ void shader_core_config::reg_options(class OptionParser *opp) {
   option_parser_register(opp, "-gpgpu_operand_collector_num_units_int",
                          OPT_INT32, &gpgpu_operand_collector_num_units_int,
                          "number of collector units (default = 0)", "0");
+  // L.Jeanmougin : mem impostor
+  option_parser_register(opp, "-gpgpu_operand_collector_num_units_mem_impostor",
+                         OPT_INT32,
+                         &gpgpu_operand_collector_num_units_mem_impostor,
+                         "number of collector units (default = 4)", "4");
+  // L.Jeanmougin : end of imposture
   option_parser_register(opp, "-gpgpu_operand_collector_num_units_tensor_core",
                          OPT_INT32,
                          &gpgpu_operand_collector_num_units_tensor_core,
@@ -534,6 +540,12 @@ void shader_core_config::reg_options(class OptionParser *opp) {
                          OPT_INT32, &gpgpu_operand_collector_num_in_ports_int,
                          "number of collector unit in ports (default = 0)",
                          "0");
+  // L.Jeanmougin : mem impostor
+  option_parser_register(
+      opp, "-gpgpu_operand_collector_num_in_ports_mem_impostor", OPT_INT32,
+      &gpgpu_operand_collector_num_in_ports_mem_impostor,
+      "number of collector unit in ports (default = 4)", "4");
+  // L.Jeanmougin : end of imposture
   option_parser_register(
       opp, "-gpgpu_operand_collector_num_in_ports_tensor_core", OPT_INT32,
       &gpgpu_operand_collector_num_in_ports_tensor_core,
@@ -562,6 +574,12 @@ void shader_core_config::reg_options(class OptionParser *opp) {
                          OPT_INT32, &gpgpu_operand_collector_num_out_ports_int,
                          "number of collector unit in ports (default = 0)",
                          "0");
+  // L.Jeanmougin : mem impostor
+  option_parser_register(
+      opp, "-gpgpu_operand_collector_num_out_ports_mem_impostor", OPT_INT32,
+      &gpgpu_operand_collector_num_out_ports_mem_impostor,
+      "number of collector unit out ports (default = 1)", "1");
+  // L.Jeanmougin : end of imposture
   option_parser_register(
       opp, "-gpgpu_operand_collector_num_out_ports_tensor_core", OPT_INT32,
       &gpgpu_operand_collector_num_out_ports_tensor_core,

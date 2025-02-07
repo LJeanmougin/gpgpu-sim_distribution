@@ -121,7 +121,7 @@ void cuda_sim::ptx_opcocde_latency_options(option_parser_t opp) {
                          "Default 100"
                          "100");
   option_parser_register(opp, "-ptx_opcode_initiation_mem_impostor", OPT_CSTR,
-                         &opcode_latency_mem_impostor,
+                         &opcode_initiation_mem_impostor,
                          "Opcode initiation for memory imposture" 
                          "Default 1",
                          "1");
@@ -600,8 +600,9 @@ void ptx_instruction::set_fp_or_int_archop() {
     if (get_type() == F16_TYPE || get_type() == F32_TYPE ||
         get_type() == F64_TYPE || get_type() == FF64_TYPE) {
       oprnd_type = FP_OP;
-    } else
+    } else {
       oprnd_type = INT_OP;
+    }
   }
 }
 
@@ -811,7 +812,6 @@ void ptx_instruction::set_opcode_and_latency() {
          &gpgpu_ctx->func_sim->cdp_latency[2],
          &gpgpu_ctx->func_sim->cdp_latency[3],
          &gpgpu_ctx->func_sim->cdp_latency[4]);
-
   if (!m_operands.empty()) {
     std::vector<operand_info>::iterator it;
     for (it = ++m_operands.begin(); it != m_operands.end(); it++) {
@@ -832,13 +832,24 @@ void ptx_instruction::set_opcode_and_latency() {
       if (has_memory_write()) op = STORE_OP;
       break;
     case LD_OP:
-      op = LOAD_OP;
+      std::cout << get_opcode_cstr() << std::endl;
+      if(get_space().get_type() == global_space)
+      {
+        op = SPECIALIZED_UNIT_1_OP;
+        latency = mem_impostor_latency;
+        initiation_interval = 1;
+      }
+      if(get_space().get_type() == shared_space) {
+        op = LOAD_OP;
+      }
       break;
     case MMA_LD_OP:
       op = TENSOR_CORE_LOAD_OP;
       break;
     case LDU_OP:
-      op = LOAD_OP;
+      op = SPECIALIZED_UNIT_1_OP;
+      latency = mem_impostor_latency;
+      initiation_interval = 1;
       break;
     case ST_OP:
       op = STORE_OP;
@@ -854,7 +865,9 @@ void ptx_instruction::set_opcode_and_latency() {
       op = BRANCH_OP;
       break;
     case TEX_OP:
-      op = LOAD_OP;
+      op = SPECIALIZED_UNIT_1_OP;
+      latency = mem_impostor_latency;
+      initiation_interval = 1;
       mem_op = TEX;
       break;
     case ATOM_OP:
@@ -1183,7 +1196,7 @@ void ptx_instruction::pre_decode() {
 
   set_opcode_and_latency();
   set_bar_type();
-  set_mem_impostor();
+  set_mem_impostor(); // L.Jeanmougin : set mem imposture (useless for cuda-sim ?)
   // Get register operands
   int n = 0, m = 0;
   ptx_instruction::const_iterator opr = op_iter_begin();
