@@ -34,7 +34,11 @@
 #include "shader.h"
 #include <float.h>
 #include <limits.h>
-#include <string.h>
+#include <string>
+
+#include <regex>
+#include <iterator>
+
 #include "../../libcuda/gpgpu_context.h"
 #include "../cuda-sim/cuda-sim.h"
 #include "../cuda-sim/ptx-stats.h"
@@ -1308,7 +1312,12 @@ void scheduler_unit::order_by_priority(
 
 int inst_id = 0;
 
+
+
 void scheduler_unit::cycle() {
+  // L.Jeanmougin : Regex for extracting instruction string
+  std::regex rgx("[0-9]\\) (.*)");
+  std::smatch match;
   SCHED_DPRINTF("scheduler_unit::cycle()\n");
   bool valid_inst =
       false;  // there was one warp with a valid instruction to issue (didn't
@@ -1585,9 +1594,16 @@ void scheduler_unit::cycle() {
           }
           if (issued_inst)
           {
-            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Issuing : ";
-            std::cout << m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str() << std::endl;
-            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Functional Unit " << pI->op << std::endl;
+            const std::string s(m_shader->m_config->gpgpu_ctx->func_sim->ptx_get_insn_str(pc).c_str());
+            std::cout << "Cycle : " << m_shader->get_gpu()->gpu_sim_cycle << " | Instruction : ";
+            if(std::regex_search(s.begin(), s.end(), match, rgx))
+              std::cout << match[1];
+            else
+              std::cout << "ERROR : No instruction found";
+            std::cout << " | Unit : " << pI->op;
+            std::cout << " | Initiation : " << pI->initiation_interval;
+            std::cout << " | Latency : " << pI->latency;
+            std::cout << std::endl;
           } 
         }
       } else if (valid) {
