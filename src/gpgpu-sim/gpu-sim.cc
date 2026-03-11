@@ -1425,7 +1425,7 @@ void gpgpu_sim::gpu_print_stat(unsigned long long streamID) {
   std::string kernel_name = m_executed_kernel_names[0];
   std::string kernel_uid(std::to_string(m_executed_kernel_uids[0]));
 
-  std::ofstream trace_file(get_current_dir_name() + std::string("/") + kernel_name + kernel_uid + std::string(".trace"), std::ios_base::app);
+  std::ofstream trace_file(get_current_dir_name() + std::string("/") + kernel_name +"-instance_" + kernel_uid + std::string(".trace"), std::ios_base::app);
   printf("gpu_sim_cycle = %lld\n", gpu_sim_cycle);
   trace_file << "kernel_execution_time : " << gpu_sim_cycle;
   printf("gpu_sim_insn = %lld\n", gpu_sim_insn);
